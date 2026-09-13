@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Realistic Vehicle Physics & Road Animations */
+@keyframes car-suspension {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-1.2px) rotate(0.2deg); }
+  50% { transform: translateY(0.8px) rotate(-0.15deg); }
+  75% { transform: translateY(-0.8px) rotate(0.1deg); }
+}
+
+@keyframes car-braking {
+  0% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(1px) rotate(1.2deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes car-accelerating {
+  0% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-0.5px) rotate(-1.5deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes wheel-spin-fast {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes road-scroll {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -120; }
+}
+
+.animate-suspension {
+  animation: car-suspension 0.45s ease-in-out infinite;
+}
+
+.animate-braking {
+  animation: car-braking 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-accelerating {
+  animation: car-accelerating 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-wheel-drive {
+  animation: wheel-spin-fast 0.28s linear infinite;
+  transform-origin: center;
+}
+
+.animate-road-move {
+  animation: road-scroll 0.8s linear infinite;
+}

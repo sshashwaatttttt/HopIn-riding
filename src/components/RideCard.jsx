@@ -1,0 +1,183 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { requestJoinRide } from '../utils/store';
+import { Star, Clock, Users, ArrowRight, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+
+export const RideCard = ({ ride, onUpdate }) => {
+  const { user } = useAuth();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+
+  const [timeLeft, setTimeLeft] = useState('');
+  const [requested, setRequested] = useState(false);
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const dep = new Date(ride.departureTime).getTime();
+      const now = Date.now();
+      const diffMins = Math.round((dep - now) / 60000);
+
+      if (diffMins <= 0) {
+        setTimeLeft('Leaving now 🛺');
+      } else {
+        setTimeLeft(`in ${diffMins} min`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 30000);
+    return () => clearInterval(interval);
+  }, [ride.departureTime]);
+
+  const isMember = ride.members.some(m => m.id === user?.id);
+  const isHost = ride.host.id === user?.id;
+  const isPending = ride.pendingRequests?.some(p => p.id === user?.id);
+  const seatsRemaining = ride.capacity - ride.members.length;
+  const isFull = seatsRemaining <= 0;
+
+  const handleJoin = (e) => {
+    e.preventDefault();
+    if (!user) return;
+    if (isMember) {
+      navigate(`/chat/${ride.id}`);
+      return;
+    }
+
+    const updated = requestJoinRide(ride.id, user);
+    setRequested(true);
+    if (onUpdate) onUpdate(updated);
+  };
+
+  return (
+    <div className="relative group bg-white dark:bg-gray-900 rounded-3xl p-5 md:p-6 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+      
+      {/* Accent Header Bar */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 to-yellow-400"></div>
+
+      <div>
+        {/* Top Meta: Host & Badges */}
+        <div className="flex items-start justify-between mb-4 gap-2">
+          <div className="flex items-center gap-3">
+            <img
+              src={ride.host.avatar}
+              alt={ride.host.name}
+              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500 shadow-md"
+            />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight">
+                  {ride.host.name}
+                </span>
+                {isHost && (
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase">
+                    HOST
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="flex items-center text-xs font-bold text-amber-500">
+                  <Star className="w-3.5 h-3.5 fill-current mr-0.5" />
+                  {ride.host.rating || 5.0}
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">
+                  • {ride.host.domain}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Badges */}
+          <div className="flex flex-col items-end gap-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+              <Clock className="w-3 h-3 text-amber-500" />
+              <span>{timeLeft}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Route Details */}
+        <div className="my-4 p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
+          <div className="flex items-center justify-between text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">
+            <span>{ride.direction === 'toCampus' ? t('toCampus') : t('fromCampus')}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] uppercase font-bold text-gray-400 block">From</span>
+              <span className="text-sm font-extrabold text-gray-900 dark:text-white truncate block">
+                {ride.pickup}
+              </span>
+            </div>
+
+            <ArrowRight className="w-4 h-4 text-amber-500 shrink-0 mx-1" />
+
+            <div className="flex-1 min-w-0 text-right">
+              <span className="text-[10px] uppercase font-bold text-gray-400 block">To</span>
+              <span className="text-sm font-extrabold text-gray-900 dark:text-white truncate block">
+                {ride.dropoff}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Squad Capacity Bar & Member Avatars */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300">
+              {ride.members.length}/{ride.capacity} {t('seatsAvailable')}
+            </span>
+          </div>
+
+          <div className="flex -space-x-2 overflow-hidden">
+            {ride.members.map((m) => (
+              <img
+                key={m.id}
+                src={m.avatar}
+                alt={m.name}
+                className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-gray-900 object-cover"
+                title={`${m.name} (${m.rating} ⭐)`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Button */}
+      <div>
+        {isMember ? (
+          <Link
+            to={`/ride/${ride.id}`}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all"
+          >
+            <span>{isHost ? 'Manage Slot & Details 👑' : 'View Slot Details 📋'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        ) : isPending || requested ? (
+          <div className="w-full py-3 px-4 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
+            <Clock className="w-4 h-4 animate-spin" />
+            <span>Request Pending Host Approval ⏳</span>
+          </div>
+        ) : isFull ? (
+          <button
+            disabled
+            className="w-full py-3 px-4 rounded-2xl bg-gray-200 dark:bg-gray-800 text-gray-400 font-bold text-xs uppercase tracking-wider cursor-not-allowed"
+          >
+            Squad Full 🚫
+          </button>
+        ) : (
+          <button
+            onClick={handleJoin}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-98"
+          >
+            <span>{t('enrollSquad')}</span>
+          </button>
+        )}
+      </div>
+
+    </div>
+  );
+};
