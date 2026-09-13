@@ -340,24 +340,31 @@ export const getBlockedUsers = () => {
   try {
     const raw = JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY) || '[]');
     if (!Array.isArray(raw)) return [];
-    return raw.map((item) => {
-      if (typeof item === 'string') {
-        return {
-          id: item,
-          name: 'Blocked Student',
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${item}`,
-          reason: 'SOS / Safety Report',
-          blockedAt: null
-        };
-      }
-      return {
-        id: item.id || 'unknown',
-        name: item.name || 'Blocked Student',
-        avatar: item.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${item.id || 'seed'}`,
-        reason: item.reason || 'SOS / Safety Report',
-        blockedAt: item.blockedAt || null
-      };
-    });
+    return raw
+      .filter((item) => item !== null && item !== undefined)
+      .map((item) => {
+        if (typeof item === 'string') {
+          return {
+            id: item,
+            name: 'Blocked Student',
+            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${item}`,
+            reason: 'SOS / Safety Report',
+            blockedAt: null
+          };
+        }
+        if (typeof item === 'object' && item !== null) {
+          const validId = item.id || 'unknown';
+          return {
+            id: validId,
+            name: item.name || 'Blocked Student',
+            avatar: item.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${validId}`,
+            reason: item.reason || 'SOS / Safety Report',
+            blockedAt: item.blockedAt || null
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
   } catch (e) {
     console.error('Error reading blocked users:', e);
     return [];
@@ -365,7 +372,7 @@ export const getBlockedUsers = () => {
 };
 
 export const getBlockedUserIds = () => {
-  return getBlockedUsers().map((u) => u.id);
+  return (getBlockedUsers() || []).map((u) => u?.id).filter(Boolean);
 };
 
 export const isUserBlocked = (userId) => {
@@ -376,15 +383,15 @@ export const isUserBlocked = (userId) => {
 export const blockUser = (userOrId, details = {}) => {
   initStore();
   const id = typeof userOrId === 'object' && userOrId !== null ? userOrId.id : userOrId;
-  if (!id) return;
+  if (!id) return [];
 
-  const current = getBlockedUsers();
+  const current = (getBlockedUsers() || []).filter(u => u && u.id);
   const existsIndex = current.findIndex((u) => u.id === id);
 
   const newEntry = {
     id,
-    name: (typeof userOrId === 'object' ? userOrId.name : null) || details.name || 'Blocked Student',
-    avatar: (typeof userOrId === 'object' ? userOrId.avatar : null) || details.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`,
+    name: (typeof userOrId === 'object' && userOrId !== null ? userOrId.name : null) || details.name || 'Blocked Student',
+    avatar: (typeof userOrId === 'object' && userOrId !== null ? userOrId.avatar : null) || details.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`,
     reason: details.reason || 'SOS / Safety Report',
     blockedAt: new Date().toISOString()
   };
@@ -405,7 +412,7 @@ export const blockUser = (userOrId, details = {}) => {
 export const unblockUser = (userId) => {
   initStore();
   if (!userId) return [];
-  const current = getBlockedUsers();
+  const current = (getBlockedUsers() || []).filter(u => u && u.id);
   const updated = current.filter((u) => u.id !== userId);
   localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(updated));
   broadcastUpdate('USER_UNBLOCKED', { userId });

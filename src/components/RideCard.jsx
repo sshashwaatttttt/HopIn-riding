@@ -31,10 +31,10 @@ export const RideCard = ({ ride, onUpdate }) => {
     return () => clearInterval(interval);
   }, [ride.departureTime]);
 
-  const isMember = ride.members.some(m => m.id === user?.id);
-  const isHost = ride.host.id === user?.id;
-  const isPending = ride.pendingRequests?.some(p => p.id === user?.id);
-  const seatsRemaining = ride.capacity - ride.members.length;
+  const isMember = (ride?.members || []).some(m => m?.id === user?.id);
+  const isHost = (ride?.host?.id || ride?.host) === user?.id;
+  const isPending = (ride?.pendingRequests || []).some(p => p?.id === user?.id);
+  const seatsRemaining = (ride?.capacity || 4) - (ride?.members || []).length;
   const isFull = seatsRemaining <= 0;
 
   const handleJoin = (e) => {
@@ -61,14 +61,14 @@ export const RideCard = ({ ride, onUpdate }) => {
         <div className="flex items-start justify-between mb-4 gap-2">
           <div className="flex items-center gap-3">
             <img
-              src={ride.host.avatar}
-              alt={ride.host.name}
-              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500 shadow-md"
+              src={ride?.host?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${ride?.id || 'host'}`}
+              alt={ride?.host?.name || 'Host'}
+              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500 shadow-md bg-gray-100 dark:bg-gray-800"
             />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight">
-                  {ride.host.name}
+                  {ride?.host?.name || 'Student Host'}
                 </span>
                 {isHost && (
                   <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase">
@@ -80,10 +80,10 @@ export const RideCard = ({ ride, onUpdate }) => {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="flex items-center text-xs font-bold text-amber-500">
                   <Star className="w-3.5 h-3.5 fill-current mr-0.5" />
-                  {ride.host.rating || 5.0}
+                  {ride?.host?.rating || 5.0}
                 </span>
                 <span className="text-[11px] font-semibold text-gray-400">
-                  • {ride.host.domain}
+                  • {ride?.host?.domain || 'BBD Student'}
                 </span>
               </div>
             </div>
