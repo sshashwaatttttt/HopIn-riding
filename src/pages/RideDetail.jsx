@@ -546,7 +546,7 @@ export const RideDetail = () => {
                       </span>
                     )}
 
-                    {member.id !== user?.id && blockedUserIds.includes(member.id) && (
+                    {member && member.id !== user?.id && (blockedUserIds || []).includes(member.id) && (
                       <button
                         type="button"
                         onClick={() => handleUnblockMember(member.id)}

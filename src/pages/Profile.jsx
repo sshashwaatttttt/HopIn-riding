@@ -406,7 +406,7 @@ export const Profile = () => {
             </div>
           ) : (
             <div className="space-y-2 pt-1">
-              {blockedUsers.map((bUser) => (
+              {(blockedUsers || []).filter(Boolean).map((bUser) => (
                 <div
                   key={bUser.id}
                   className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3 shadow-sm hover:border-red-500/30 transition-all"

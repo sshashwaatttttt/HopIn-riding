@@ -11,19 +11,76 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
     <title>HopIn - BBD College Ride Pool 🛺</title>
+
+    <script>
+      // 1. Auto-reload when Vite chunks change after a deployment
+      window.addEventListener('vite:preloadError', (event) => {
+        console.warn('[HopIn] New deployment chunk detected. Auto-reloading to fresh version...');
+        window.location.reload();
+      });
+
+      // 2. Auto-heal if a stale asset returned HTML and caused a fatal syntax error
+      window.addEventListener('error', (event) => {
+        const msg = (event.message || '').toLowerCase();
+        if (
+          msg.includes("unexpected token '<'") ||
+          msg.includes('failed to fetch dynamically imported module') ||
+          msg.includes('loading chunk')
+        ) {
+          if (!sessionStorage.getItem('hopin_auto_recovered')) {
+            sessionStorage.setItem('hopin_auto_recovered', '1');
+            console.warn('[HopIn] Stale bundle detected. Resetting service worker and caches...');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then((regs) => {
+                for (const reg of regs) reg.unregister();
+              });
+            }
+            if ('caches' in window) {
+              caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+            }
+            setTimeout(() => {
+              window.location.reload();
+            }, 150);
+          }
+        }
+      });
+    </script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200 antialiased font-sans">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
+        // Auto-refresh when new service worker takes over clients
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!window.__hopin_reloading) {
+            window.__hopin_reloading = true;
+            window.location.reload();
+          }
+        });
+
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').then((reg) => {
             // Check for new version on Vercel immediately
             reg.update();
-          }).catch(err => console.log('SW reg failed: ', err));
+
+            // Also check for updates when returning to the tab
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') {
+                reg.update();
+              }
+            });
+          }).catch(err => console.log('[HopIn] SW registration error: ', err));
         });
       }
+
+      // Clear recovery flag once app mounts cleanly
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          sessionStorage.removeItem('hopin_auto_recovered');
+        }
+      }, 3500);
     </script>
   </body>
 </html>

@@ -29,9 +29,9 @@ export const LiveRideBoard = () => {
 
   const refreshRides = () => {
     const data = getRides();
-    const blocked = getBlockedUserIds();
-    // Filter out rides from blocked users
-    const clean = data.filter(r => !blocked.includes(r.host?.id));
+    const blocked = getBlockedUserIds() || [];
+    // Filter out rides from blocked users safely
+    const clean = (Array.isArray(data) ? data : []).filter(r => r && (!r.host || !blocked.includes(r.host.id)));
     setRides(clean);
   };
 
