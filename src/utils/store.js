@@ -240,6 +240,62 @@ export const respondJoinRequest = (rideId, userId, accept) => {
   return ride;
 };
 
+export const leaveRideSlot = (rideId, userId) => {
+  const ride = getRideById(rideId);
+  if (!ride) return null;
+
+  let memberName = '';
+  // Remove from confirmed members (cannot leave if host)
+  if (Array.isArray(ride.members)) {
+    const memberIdx = ride.members.findIndex(m => m.id === userId);
+    if (memberIdx !== -1) {
+      const member = ride.members[memberIdx];
+      if (!member.isHost) {
+        memberName = member.name || 'Co-rider';
+        ride.members.splice(memberIdx, 1);
+      }
+    }
+  }
+
+  // Also remove from pendingRequests if present
+  if (Array.isArray(ride.pendingRequests)) {
+    ride.pendingRequests = ride.pendingRequests.filter(p => p.id !== userId);
+  }
+
+  saveRide(ride);
+
+  // If a member left, post an informative system message in squad chat
+  if (memberName) {
+    try {
+      const systemMsg = {
+        id: `msg-${Date.now()}-sys`,
+        senderId: 'system',
+        senderName: 'HopIn System 🛺',
+        senderAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=system',
+        text: `🚪 ${memberName} left the ride slot. 1 seat is now open.`,
+        timestamp: new Date().toISOString(),
+        isLocation: false
+      };
+      addChatMessage(rideId, systemMsg);
+    } catch (e) {
+      console.warn('Could not post leave system message:', e);
+    }
+  }
+
+  return ride;
+};
+
+export const cancelJoinRequest = (rideId, userId) => {
+  const ride = getRideById(rideId);
+  if (!ride) return null;
+
+  if (Array.isArray(ride.pendingRequests)) {
+    ride.pendingRequests = ride.pendingRequests.filter(p => p.id !== userId);
+    saveRide(ride);
+  }
+  return ride;
+};
+
 export const updateRideStatus = (rideId, status) => {
   const ride = getRideById(rideId);
   if (!ride) return null;

@@ -9,6 +9,7 @@ import {
   editChatMessage,
   deleteChatMessage,
   updateRideStatus, 
+  leaveRideSlot,
   subscribeToSync 
 } from '../utils/store';
 import { SOSModal } from '../components/SOSModal';
@@ -26,7 +27,8 @@ import {
   Pencil,
   Trash2,
   Check,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 
 export const SquadChat = () => {
@@ -173,6 +175,16 @@ export const SquadChat = () => {
     setIsRatingOpen(true);
   };
 
+  const handleLeaveSlot = () => {
+    if (!user) return;
+    const confirmMsg = t('leaveSlotConfirm') || "Are you sure you want to leave this ride slot? Your reserved seat will be released for other students.";
+    if (window.confirm(confirmMsg)) {
+      leaveRideSlot(rideId, user.id);
+      alert(t('leftSlotSuccess') || "You have left the ride slot.");
+      navigate('/');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto py-2 flex flex-col h-[calc(100vh-5rem)]">
       
@@ -199,6 +211,19 @@ export const SquadChat = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Leave Slot Button for Co-Rider */}
+          {!isHost && (
+            <button
+              type="button"
+              onClick={handleLeaveSlot}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 hover:border-red-500 font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+              title="Leave this ride slot if there is any misconception"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Leave Slot 🚪</span>
+            </button>
+          )}
+
           {/* Floating SOS Safety Button */}
           <button
             onClick={() => setIsSosOpen(true)}

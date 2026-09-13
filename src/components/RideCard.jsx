@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { requestJoinRide } from '../utils/store';
-import { Star, Clock, Users, ArrowRight, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import { requestJoinRide, leaveRideSlot, cancelJoinRequest } from '../utils/store';
+import { Star, Clock, Users, ArrowRight, ShieldAlert, Sparkles, CheckCircle2, LogOut } from 'lucide-react';
 
 export const RideCard = ({ ride, onUpdate }) => {
   const { user } = useAuth();
@@ -48,6 +48,29 @@ export const RideCard = ({ ride, onUpdate }) => {
     const updated = requestJoinRide(ride.id, user);
     setRequested(true);
     if (onUpdate) onUpdate(updated);
+  };
+
+  const handleLeaveSlot = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    const confirmMsg = t('leaveSlotConfirm') || "Are you sure you want to leave this ride slot? Your reserved seat will be released for other students.";
+    if (window.confirm(confirmMsg)) {
+      const updated = leaveRideSlot(ride.id, user.id);
+      if (onUpdate) onUpdate(updated);
+    }
+  };
+
+  const handleCancelRequest = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    const confirmMsg = t('cancelRequestConfirm') || "Cancel your join request?";
+    if (window.confirm(confirmMsg)) {
+      const updated = cancelJoinRequest(ride.id, user.id);
+      setRequested(false);
+      if (onUpdate) onUpdate(updated);
+    }
   };
 
   return (
@@ -149,17 +172,48 @@ export const RideCard = ({ ride, onUpdate }) => {
       {/* Action Button */}
       <div>
         {isMember ? (
-          <Link
-            to={`/ride/${ride.id}`}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all"
-          >
-            <span>{isHost ? 'Manage Slot & Details 👑' : 'View Slot Details 📋'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          isHost ? (
+            <Link
+              to={`/ride/${ride.id}`}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all"
+            >
+              <span>Manage Slot & Details 👑</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/ride/${ride.id}`}
+                className="flex-1 py-3.5 px-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <span>View Slot 📋</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={handleLeaveSlot}
+                className="py-3.5 px-3.5 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 hover:border-red-500 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm"
+                title="Leave this ride slot if there is any misconception"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Leave</span>
+              </button>
+            </div>
+          )
         ) : isPending || requested ? (
-          <div className="w-full py-3 px-4 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
-            <Clock className="w-4 h-4 animate-spin" />
-            <span>Request Pending Host Approval ⏳</span>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 py-3 px-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span className="truncate">Pending Approval ⏳</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelRequest}
+              className="py-3 px-3 rounded-2xl bg-gray-100 hover:bg-red-500/20 dark:bg-gray-800 dark:hover:bg-red-500/20 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 font-bold text-xs uppercase transition-all shrink-0"
+              title="Cancel join request"
+            >
+              <span>Cancel ✕</span>
+            </button>
           </div>
         ) : isFull ? (
           <button
