@@ -1,45 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { Car, Zap, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Car } from 'lucide-react';
 
 export const CityStreetAnimation = () => {
-  const [phase, setPhase] = useState('driving-in'); // 'driving-in', 'stopped-drop', 'stopped-pick', 'driving-out'
-  const [cycle, setCycle] = useState(0);
+  // Vehicle physics state
+  // Phases: 'approaching' -> 'stopped-drop' -> 'stopped-pick' -> 'accelerating' -> 'exited'
+  const [phase, setPhase] = useState('approaching');
   const [vehicleType, setVehicleType] = useState('car'); // 'car' or 'auto'
+  const [carLeft, setCarLeft] = useState(-30); // percentage across screen
+  const [noTransition, setNoTransition] = useState(false);
+  const [brakeLightsOn, setBrakeLightsOn] = useState(false);
+
+  const loopTimeoutRef = useRef(null);
 
   useEffect(() => {
-    // 14-Second Realistic Animation Timeline:
-    // 0s - 4.2s: Approaching BBD Hub, smooth deceleration, brake lights ignite
-    // 4.2s - 7s: Stopped at Hub - Passengers Alighting (Drop off)
-    // 7s - 9.8s: Stopped at Hub - New Passengers Boarding, suspension compress
-    // 9.8s - 14s: Accelerate forward, rear squat, headlight beams sweep into night
+    let active = true;
 
-    const timer1 = setTimeout(() => setPhase('stopped-drop'), 4000);
-    const timer2 = setTimeout(() => setPhase('stopped-pick'), 7000);
-    const timer3 = setTimeout(() => setPhase('driving-out'), 9800);
+    // Run a clean, strictly forward-moving physics cycle
+    const runCycle = () => {
+      if (!active) return;
 
-    const interval = setInterval(() => {
-      setPhase('driving-in');
-      setCycle(c => c + 1);
-    }, 14000);
+      // 1. Instantly place vehicle off-screen left (no animation backward)
+      setNoTransition(true);
+      setCarLeft(-30);
+      setBrakeLightsOn(false);
+      setPhase('approaching');
+
+      // Next tick: enable smooth forward transition into BBD Hub (stop at ~38%)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!active) return;
+          setNoTransition(false);
+          // Cruising forward, decelerating smoothly to stop at hub
+          setCarLeft(38);
+        });
+      });
+
+      // 2. Approaching stop: brake lights ignite as vehicle comes to rest (at 3.5s)
+      const t1 = setTimeout(() => {
+        if (!active) return;
+        setBrakeLightsOn(true);
+        setPhase('stopped-drop');
+      }, 3500);
+
+      // 3. Stopped at Hub: Passengers alighting (drop off) (at 4.5s)
+      const t2 = setTimeout(() => {
+        if (!active) return;
+        setPhase('stopped-drop');
+      }, 4200);
+
+      // 4. Stopped at Hub: New Passengers boarding (pick up) (at 7.0s)
+      const t3 = setTimeout(() => {
+        if (!active) return;
+        setPhase('stopped-pick');
+      }, 7000);
+
+      // 5. Accelerate forward: release brakes, power forward to exit right (at 9.8s)
+      const t4 = setTimeout(() => {
+        if (!active) return;
+        setBrakeLightsOn(false);
+        setPhase('accelerating');
+        setNoTransition(false);
+        // Drive forward across the screen to 125%
+        setCarLeft(125);
+      }, 9800);
+
+      // 6. Complete exit: vehicle is completely off-screen right (at 14.0s)
+      // Repeat cycle without ANY backward transition
+      const t5 = setTimeout(() => {
+        if (!active) return;
+        setPhase('exited');
+        runCycle();
+      }, 14200);
+
+      loopTimeoutRef.current = [t1, t2, t3, t4, t5];
+    };
+
+    runCycle();
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearInterval(interval);
+      active = false;
+      if (Array.isArray(loopTimeoutRef.current)) {
+        loopTimeoutRef.current.forEach(clearTimeout);
+      }
     };
-  }, [cycle]);
+  }, [vehicleType]);
 
-  const isDriving = phase === 'driving-in' || phase === 'driving-out';
-  const isBraking = phase === 'stopped-drop';
-  const isAccelerating = phase === 'driving-out';
+  const isDriving = phase === 'approaching' || phase === 'accelerating';
   const isStopped = phase === 'stopped-drop' || phase === 'stopped-pick';
+  const isAccelerating = phase === 'accelerating';
 
   return (
     <div className="relative w-full h-52 sm:h-60 overflow-hidden rounded-3xl bg-gradient-to-b from-[#080d1a] via-[#0f172a] to-[#0a0e1a] border border-amber-500/20 shadow-2xl group select-none">
       
       {/* ── Vehicle Type Switcher Toggle (Top Right) ─────────────────────── */}
-      <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 p-1 rounded-2xl bg-gray-900/80 backdrop-blur-md border border-gray-700/60 shadow-lg">
+      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 p-1 rounded-2xl bg-gray-900/80 backdrop-blur-md border border-gray-700/60 shadow-lg">
         <button
           type="button"
           onClick={() => setVehicleType('car')}
@@ -50,7 +104,7 @@ export const CityStreetAnimation = () => {
           }`}
         >
           <Car className="w-3.5 h-3.5" />
-          <span>Sleek Cab</span>
+          <span>City Taxi Cab</span>
         </button>
         <button
           type="button"
@@ -62,22 +116,17 @@ export const CityStreetAnimation = () => {
           }`}
         >
           <span>🛺</span>
-          <span>E-Rickshaw</span>
+          <span>BBD E-Rickshaw</span>
         </button>
       </div>
 
-      {/* ── Sky & Ambient Stars ───────────────────────────────────────────── */}
+      {/* ── Night Sky, Stars & Distant Lucknow Skyline ────────────────────── */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1200 240">
         <defs>
           <radialGradient id="moonGlow" cx="85%" cy="20%" r="50%">
             <stop offset="0%" stopColor="#fef08a" stopOpacity="0.4" />
             <stop offset="100%" stopColor="#fef08a" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#050814" />
-            <stop offset="70%" stopColor="#0f172a" />
-            <stop offset="100%" stopColor="#1e293b" />
-          </linearGradient>
         </defs>
 
         {/* Twinkling stars */}
@@ -88,7 +137,7 @@ export const CityStreetAnimation = () => {
         <circle cx="890" cy="18" r="1.5" fill="#fff" opacity="0.8" />
         <circle cx="1080" cy="30" r="1.3" fill="#38BDF8" opacity="0.7" />
 
-        {/* Soft Moon Glow */}
+        {/* Soft Moon */}
         <circle cx="1020" cy="45" r="28" fill="url(#moonGlow)" />
         <circle cx="1020" cy="45" r="12" fill="#fef08a" opacity="0.85" />
 
@@ -99,26 +148,23 @@ export const CityStreetAnimation = () => {
           opacity="0.85"
         />
 
-        {/* BBD Architectural Dome Accent Stroke */}
-        <path d="M 470 85 Q 520 45 570 85" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 4" opacity="0.5" />
+        {/* BBD Architectural Dome Accent */}
+        <path d="M 470 85 Q 520 45 570 85" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 4" opacity="0.45" />
         <text x="520" y="40" fill="#F59E0B" fontSize="10" fontWeight="900" textAnchor="middle" opacity="0.85" letterSpacing="2">
-          BBD UNIVERSITY • CAMPUS TRANSIT
+          BBD UNIVERSITY • TRANSIT CORRIDOR
         </text>
 
-        {/* Midground Trees & Silhouettes */}
+        {/* Trees */}
         <ellipse cx="280" cy="170" rx="20" ry="14" fill="#0f2137" opacity="0.9" />
         <ellipse cx="620" cy="170" rx="24" ry="16" fill="#0f2137" opacity="0.9" />
         <ellipse cx="820" cy="170" rx="18" ry="12" fill="#0f2137" opacity="0.9" />
       </svg>
 
-      {/* ── Modern Streetlamp with Glowing Light Pool ─────────────────────── */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex flex-col items-center">
-        {/* Lamp Fixture */}
+      {/* ── Streetlamp Overhead ────────────────────────────────────────────── */}
+      <div className="absolute bottom-12 left-[48%] -translate-x-1/2 z-10 pointer-events-none flex flex-col items-center">
         <div className="relative">
           <div className="w-8 h-2 bg-gray-700 rounded-full border border-gray-600"></div>
-          {/* Luminous Warm Light Bulb */}
-          <div className="w-5 h-2.5 mx-auto bg-amber-200 rounded-b-full shadow-[0_0_18px_rgba(251,191,36,0.9)]"></div>
-          {/* Volumetric Street Light Cone */}
+          <div className="w-5 h-2.5 mx-auto bg-amber-200 rounded-b-full shadow-[0_0_20px_rgba(251,191,36,0.9)]"></div>
           <div
             className="w-48 h-36 -mt-1 opacity-20 pointer-events-none"
             style={{
@@ -127,29 +173,25 @@ export const CityStreetAnimation = () => {
             }}
           ></div>
         </div>
-        {/* Lamp Post Pole */}
         <div className="w-1.5 h-16 bg-gradient-to-r from-gray-600 via-gray-400 to-gray-700 shadow-lg -mt-36"></div>
       </div>
 
-      {/* ── BBD Transit Shelter & Platform ─────────────────────────────────── */}
-      <div className="absolute bottom-12 left-[38%] sm:left-[43%] z-15 flex flex-col items-center pointer-events-none">
-        {/* Glass Modern Transit Canopy */}
-        <div className="px-4 py-1 rounded-t-xl bg-cyan-950/70 border-t-2 border-x-2 border-cyan-400/40 backdrop-blur-md shadow-lg flex items-center gap-2">
+      {/* ── BBD Transit Shelter & Platform Hub ─────────────────────────────── */}
+      <div className="absolute bottom-12 left-[36%] sm:left-[40%] z-15 flex flex-col items-center pointer-events-none">
+        <div className="px-3.5 py-1 rounded-t-xl bg-cyan-950/70 border-t-2 border-x-2 border-cyan-400/40 backdrop-blur-md shadow-lg flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span className="text-[10px] font-black text-cyan-300 tracking-wider">
-            HOPIN PICKUP HUB
+            BBD PICKUP HUB
           </span>
         </div>
-        {/* Bench / Platform bar */}
-        <div className="w-24 h-1.5 bg-gradient-to-r from-cyan-400/40 via-amber-400/40 to-cyan-400/40 rounded-full"></div>
+        <div className="w-28 h-1.5 bg-gradient-to-r from-cyan-400/40 via-amber-400/50 to-cyan-400/40 rounded-full"></div>
       </div>
 
-      {/* ── Realistic Asphalt Road with Moving Dash Markings ──────────────── */}
+      {/* ── Realistic Asphalt Road & Dashed Lane Markings ─────────────────── */}
       <div className="absolute bottom-0 w-full h-14 bg-gradient-to-b from-[#181d28] via-[#10141e] to-[#0a0d14] border-t-2 border-gray-700/80 shadow-2xl overflow-hidden flex flex-col justify-center">
-        {/* Road surface texture & reflection sheen */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent pointer-events-none"></div>
 
-        {/* Moving Yellow & White Center Lane Dashes */}
+        {/* Yellow Dashed Road Markings (scrolls to the left when car moves forward) */}
         <svg className="w-full h-3 relative z-10" preserveAspectRatio="none">
           <line
             x1="0"
@@ -163,15 +205,13 @@ export const CityStreetAnimation = () => {
             strokeOpacity="0.75"
           />
         </svg>
-
-        {/* Road Curb line with curb markers */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gray-500/30"></div>
       </div>
 
-      {/* ── Dynamic Passenger Avatars (Alighting & Boarding) ──────────────── */}
-      {/* Alighting Passengers (Drop off) */}
+      {/* ── Interactive Passenger Badges at Hub ───────────────────────────── */}
+      {/* Alighting Passengers (Drop-off) */}
       {phase === 'stopped-drop' && (
-        <div className="absolute bottom-14 left-[34%] sm:left-[39%] flex items-end gap-2.5 z-25 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="absolute bottom-14 left-[33%] sm:left-[37%] flex items-end gap-2.5 z-35 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex flex-col items-center animate-bounce">
             <span className="bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md mb-1 whitespace-nowrap">
               Thanks! ✌️
@@ -191,9 +231,9 @@ export const CityStreetAnimation = () => {
         </div>
       )}
 
-      {/* Boarding Passengers (Pick up) */}
+      {/* Boarding Passengers (Pick-up) */}
       {phase === 'stopped-pick' && (
-        <div className="absolute bottom-14 left-[46%] sm:left-[51%] flex items-end gap-2.5 z-25 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="absolute bottom-14 left-[46%] sm:left-[50%] flex items-end gap-2.5 z-35 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex flex-col items-center animate-bounce">
             <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md mb-1 whitespace-nowrap">
               Hop In! 🚀
@@ -213,295 +253,630 @@ export const CityStreetAnimation = () => {
         </div>
       )}
 
-      {/* ── Real Vehicle with Advanced Physics & Lighting ─────────────────── */}
+      {/* ── Vehicle Container with Pure Forward Physics & Inertia ─────────── */}
       <div
-        className={`absolute bottom-3.5 z-30 transition-all ${
-          phase === 'driving-in'
-            ? 'left-[-35%] sm:left-[-25%] duration-[4200ms] ease-out'
-            : phase === 'stopped-drop' || phase === 'stopped-pick'
-            ? 'left-[32%] sm:left-[38%] duration-[1000ms] ease-out'
-            : 'left-[115%] duration-[4200ms] ease-in'
-        }`}
+        className="absolute bottom-3.5 z-30"
+        style={{
+          left: `${carLeft}%`,
+          transition: noTransition
+            ? 'none'
+            : phase === 'approaching'
+            ? 'left 4.2s cubic-bezier(0.15, 0.85, 0.35, 1)' // smooth braking ease-out
+            : phase === 'accelerating'
+            ? 'left 4.2s cubic-bezier(0.4, 0, 0.2, 1)' // smooth acceleration ease-in
+            : 'none'
+        }}
       >
-        {/* Realistic Car Body Container with Dynamic Suspension & Inertia Pitch */}
+        {/* Dynamic Suspension & Pitch Tilt */}
         <div
           className={`relative ${
             isDriving ? 'animate-suspension' : ''
-          } ${isBraking ? 'animate-braking' : ''} ${
+          } ${brakeLightsOn ? 'animate-braking' : ''} ${
             isAccelerating ? 'animate-accelerating' : ''
           }`}
         >
 
-          {/* ═══════════════ OPTION A: REALISTIC SLEEK CAB ═══════════════ */}
+          {/* ═══════════════ OPTION A: ACCURATE SEDAN TAXI (FACING RIGHT) ═══════════════ */}
           {vehicleType === 'car' ? (
-            <div className="relative w-44 sm:w-52 h-24">
+            <div className="relative w-48 sm:w-56 h-24">
               
-              {/* Volumetric Forward Headlight Beam casting onto road */}
+              {/* Forward Projecting Volumetric Headlight Cone (Ahead on Right) */}
               <div
-                className="absolute top-9 left-[75%] w-64 h-24 pointer-events-none z-10 transition-opacity duration-300"
+                className="absolute top-10 left-[82%] w-72 h-28 pointer-events-none z-10 transition-opacity duration-500"
                 style={{
-                  background: 'radial-gradient(ellipse at left, rgba(254, 240, 138, 0.45) 0%, rgba(254, 240, 138, 0.15) 50%, transparent 80%)',
-                  clipPath: 'polygon(0% 25%, 100% 0%, 100% 100%, 0% 75%)',
-                  opacity: isStopped ? 0.4 : 0.85
+                  background: 'radial-gradient(ellipse at left, rgba(254, 240, 138, 0.55) 0%, rgba(254, 240, 138, 0.18) 45%, transparent 75%)',
+                  clipPath: 'polygon(0% 28%, 100% 0%, 100% 100%, 0% 72%)',
+                  opacity: isStopped ? 0.35 : 0.85
                 }}
               ></div>
 
-              {/* Realistic Car SVG */}
-              <svg viewBox="0 0 320 150" className="w-full h-full drop-shadow-[0_12px_20px_rgba(0,0,0,0.8)]">
+              {/* Road Asphalt Illumination Glow Ahead */}
+              <div
+                className="absolute top-16 left-[90%] w-60 h-10 pointer-events-none rounded-full blur-md transition-opacity duration-500"
+                style={{
+                  background: 'radial-gradient(ellipse, rgba(254, 240, 138, 0.4) 0%, transparent 70%)',
+                  opacity: isStopped ? 0.25 : 0.75
+                }}
+              ></div>
+
+              {/* Rear Brake Light Glow onto Road (Behind on Left) */}
+              {brakeLightsOn && (
+                <div
+                  className="absolute top-11 -left-12 w-20 h-16 pointer-events-none rounded-full blur-lg animate-pulse"
+                  style={{
+                    background: 'radial-gradient(ellipse, rgba(239, 68, 68, 0.85) 0%, transparent 70%)'
+                  }}
+                ></div>
+              )}
+
+              {/* Realistic Car SVG - Anatomically Correct (Front on Right, Rear on Left) */}
+              <svg viewBox="0 0 340 140" className="w-full h-full drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]">
                 <defs>
-                  {/* Metallic Gloss Gradient for Chassis */}
-                  <linearGradient id="carBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FDE68A" />
-                    <stop offset="25%" stopColor="#F59E0B" />
-                    <stop offset="60%" stopColor="#D97706" />
-                    <stop offset="100%" stopColor="#78350F" />
+                  {/* Taxi Vibrant Yellow Body with Metallic Reflection */}
+                  <linearGradient id="taxiBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#FEF08A" />
+                    <stop offset="20%" stopColor="#FACC15" />
+                    <stop offset="65%" stopColor="#EAB308" />
+                    <stop offset="100%" stopColor="#854D0E" />
                   </linearGradient>
 
-                  {/* Sleek Dark Aerodynamic Roof */}
-                  <linearGradient id="carRoofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  {/* Glossy Black Roof */}
+                  <linearGradient id="taxiRoofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="#334155" />
-                    <stop offset="60%" stopColor="#1E293B" />
+                    <stop offset="50%" stopColor="#1E293B" />
                     <stop offset="100%" stopColor="#0F172A" />
                   </linearGradient>
 
-                  {/* Tinted Glass Windows */}
-                  <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#7DD3FC" stopOpacity="0.8" />
-                    <stop offset="60%" stopColor="#0284C7" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#0C4A6E" stopOpacity="0.95" />
+                  {/* Tinted Automotive Glass */}
+                  <linearGradient id="tintedGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#BAE6FD" stopOpacity="0.85" />
+                    <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#0369A1" stopOpacity="0.95" />
                   </linearGradient>
 
-                  {/* Alloy Rim Polished Steel */}
-                  <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  {/* Polished Alloy Rim */}
+                  <linearGradient id="alloyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#FFFFFF" />
-                    <stop offset="45%" stopColor="#94A3B8" />
+                    <stop offset="50%" stopColor="#94A3B8" />
                     <stop offset="100%" stopColor="#334155" />
                   </linearGradient>
                 </defs>
 
-                {/* Ground Shadow underneath chassis */}
-                <ellipse cx="160" cy="132" rx="140" ry="10" fill="#000" opacity="0.65" filter="blur(3px)" />
+                {/* Ground Shadow */}
+                <ellipse cx="170" cy="128" rx="155" ry="9" fill="#000" opacity="0.7" filter="blur(3px)" />
 
-                {/* Main Aerodynamic Car Silhouette Body */}
+                {/* ── 1. Main Car Body Chassis ── */}
+                {/* Correct Sedan Profile:
+                    Left: Rear bumper, trunk lid, rear window
+                    Center: Cabin roof, doors
+                    Right: Sloped windshield, sculpted long hood, front bumper & headlights */}
                 <path
-                  d="M 25 105 
-                     C 22 95, 26 85, 38 80 
-                     L 85 76 
-                     C 105 55, 125 38, 150 35 
-                     L 225 35 
-                     C 255 35, 275 62, 290 80 
-                     L 305 85 
-                     C 315 90, 318 100, 312 110 
-                     L 300 114 
-                     C 290 102, 270 96, 250 96 
-                     C 230 96, 215 108, 208 116 
-                     L 125 116 
-                     C 118 106, 102 96, 82 96 
-                     C 62 96, 46 106, 40 115 
+                  d="M 22 96 
+                     C 18 90, 18 78, 24 74 
+                     L 68 70 
+                     C 80 55, 96 40, 118 34 
+                     L 216 34 
+                     C 236 44, 252 58, 264 68 
+                     L 306 73 
+                     C 316 76, 324 84, 322 92 
+                     L 318 106 
+                     C 305 106, 298 94, 280 94 
+                     C 260 94, 246 104, 238 110 
+                     L 116 110 
+                     C 108 102, 94 94, 76 94 
+                     C 58 94, 44 104, 38 110 
+                     L 24 108 
                      Z"
-                  fill="url(#carBodyGrad)"
-                  stroke="#FBBF24"
-                  strokeWidth="1.5"
+                  fill="url(#taxiBodyGrad)"
+                  stroke="#CA8A04"
+                  strokeWidth="1.2"
                 />
 
-                {/* Aerodynamic Roof & Windshield Frame */}
+                {/* ── 2. Aerodynamic Black Roof Canopy ── */}
                 <path
-                  d="M 90 75 
-                     C 110 54, 128 38, 152 36 
-                     L 222 36 
-                     C 250 36, 268 58, 282 75 
+                  d="M 115 34 
+                     L 218 34 
+                     C 234 44, 248 57, 260 67 
+                     L 74 69 
+                     C 88 54, 102 40, 115 34 
                      Z"
-                  fill="url(#carRoofGrad)"
+                  fill="url(#taxiRoofGrad)"
                 />
 
-                {/* Front & Rear Tinted Windows with Passenger Silhouettes */}
-                {/* Rear Passenger Window */}
+                {/* ── 3. Illuminated TAXI Rooftop Sign ── */}
+                <g transform="translate(155, 17)">
+                  {/* Base mount */}
+                  <rect x="0" y="14" width="30" height="3" rx="1.5" fill="#1E293B" />
+                  {/* Luminous Taxi Sign Wedge */}
+                  <path d="M 2 14 L 6 3 L 24 3 L 28 14 Z" fill="#FEF08A" stroke="#CA8A04" strokeWidth="1" filter="drop-shadow(0 0 6px rgba(254, 240, 138, 0.85))" />
+                  <text x="15" y="11" fill="#000" fontSize="7.5" fontWeight="900" textAnchor="middle" letterSpacing="0.8">
+                    TAXI
+                  </text>
+                </g>
+
+                {/* ── 4. Windows with Driver & Passenger Silhouettes ── */}
+                {/* Rear Passenger Window (Left) */}
                 <path
-                  d="M 98 73 
-                     C 115 56, 130 43, 152 41 
-                     L 182 41 
-                     L 182 73 
+                  d="M 80 67 
+                     C 92 53, 104 42, 118 38 
+                     L 158 38 
+                     L 158 67 
                      Z"
-                  fill="url(#glassGrad)"
+                  fill="url(#tintedGlass)"
                 />
-                {/* Front Driver Window */}
+                {/* Front Driver Window (Right) */}
                 <path
-                  d="M 188 41 
-                     L 218 41 
-                     C 240 41, 258 56, 274 73 
-                     L 188 73 
+                  d="M 164 38 
+                     L 210 38 
+                     C 225 46, 238 56, 248 67 
+                     L 164 67 
                      Z"
-                  fill="url(#glassGrad)"
+                  fill="url(#tintedGlass)"
                 />
 
-                {/* Driver & Passenger Silhouettes Inside */}
-                {/* Driver */}
-                <circle cx="215" cy="56" r="7" fill="#1E293B" />
-                <path d="M 226 68 L 222 62 L 210 62 L 206 68 Z" fill="#1E293B" />
-                {/* Steering Wheel line */}
-                <line x1="228" y1="58" x2="232" y2="70" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" />
+                {/* Interior Silhouettes */}
                 {/* Rear Passenger */}
-                <circle cx="140" cy="58" r="6" fill="#334155" />
-                <path d="M 148 70 L 145 64 L 135 64 L 132 70 Z" fill="#334155" />
+                <circle cx="125" cy="53" r="6" fill="#1E293B" />
+                <path d="M 132 65 L 130 59 L 120 59 L 118 65 Z" fill="#1E293B" />
+                {/* Driver (facing forward to the right) */}
+                <circle cx="195" cy="51" r="6.5" fill="#0F172A" />
+                <path d="M 204 65 L 201 57 L 189 57 L 186 65 Z" fill="#0F172A" />
+                {/* Steering Wheel (slanted forward to right) */}
+                <line x1="210" y1="55" x2="216" y2="67" stroke="#000" strokeWidth="2.5" strokeLinecap="round" />
 
-                {/* Body Character Crease Line & Door Seam */}
-                <line x1="185" y1="41" x2="185" y2="114" stroke="#78350F" strokeWidth="1.2" />
-                <path d="M 45 84 Q 160 88 300 88" fill="none" stroke="#FEF3C7" strokeWidth="1" opacity="0.6" />
-                {/* Recessed Door Handles */}
-                <rect x="155" y="80" width="14" height="3" rx="1.5" fill="#78350F" />
-                <rect x="200" y="80" width="14" height="3" rx="1.5" fill="#78350F" />
+                {/* ── 5. Classic Checkered Taxi Stripe Across Door ── */}
+                <g transform="translate(68, 78)">
+                  <rect x="0" y="0" width="195" height="7" fill="#1E293B" rx="1.5" />
+                  {/* Alternating white/amber checkers */}
+                  <rect x="6" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="22" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="38" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="54" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="70" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="86" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="102" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="118" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="134" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="150" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="166" y="1" width="8" height="5" fill="#FEF08A" />
+                  <rect x="182" y="1" width="8" height="5" fill="#FEF08A" />
+                </g>
 
-                {/* Side Mirror */}
-                <ellipse cx="230" cy="74" rx="6" ry="4" fill="#F59E0B" stroke="#78350F" strokeWidth="1" />
-
-                {/* HopIn Brand Emblem on Car Door */}
-                <g transform="translate(145, 94)">
-                  <rect width="30" height="12" rx="4" fill="#1E293B" />
-                  <text x="15" y="9" fill="#F59E0B" fontSize="7" fontWeight="900" textAnchor="middle" letterSpacing="0.5">
+                {/* HopIn Badge on Door */}
+                <g transform="translate(142, 88)">
+                  <rect width="32" height="13" rx="4" fill="#0F172A" />
+                  <text x="16" y="9.5" fill="#FACC15" fontSize="7" fontWeight="900" textAnchor="middle">
                     HopIn
                   </text>
                 </g>
 
-                {/* Front LED Projector Headlight */}
-                <path d="M 292 84 L 310 88 L 308 96 L 288 94 Z" fill="#F8FAFC" />
-                <circle cx="304" cy="91" r="3" fill="#38BDF8" className={isDriving ? 'animate-pulse' : ''} />
+                {/* Door Seam & Handles */}
+                <line x1="161" y1="38" x2="161" y2="108" stroke="#854D0E" strokeWidth="1.2" />
+                <rect x="135" y="73" width="12" height="3" rx="1.5" fill="#854D0E" />
+                <rect x="180" y="73" width="12" height="3" rx="1.5" fill="#854D0E" />
 
-                {/* Rear LED Light Bar (Active Red Brake Glow during stopping) */}
+                {/* Aerodynamic Side Mirror (facing forward on right) */}
+                <ellipse cx="222" cy="67" rx="6" ry="4" fill="#FACC15" stroke="#854D0E" strokeWidth="1" />
+                <circle cx="225" cy="67" r="1.5" fill="#FEF08A" />
+
+                {/* ── 6. FRONT HEADLIGHT ASSEMBLY (Right Side Facing Forward) ── */}
+                {/* Aerodynamic wrap-around headlight casing */}
+                <path d="M 296 73 L 316 78 L 314 88 L 294 84 Z" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.8" />
+                {/* Projector LED eye */}
+                <circle cx="308" cy="81" r="3.5" fill="#38BDF8" className={isDriving ? 'animate-pulse' : ''} />
+                <circle cx="308" cy="81" r="1.5" fill="#FFFFFF" />
+                {/* Amber corner turn indicator */}
+                <rect x="313" y="78" width="2" height="7" rx="1" fill="#F59E0B" />
+
+                {/* ── 7. REAR TAILLIGHT ASSEMBLY (Left Side) ── */}
+                {/* Dual stage rear lamp */}
                 <path
-                  d="M 26 82 L 36 82 L 32 94 L 23 92 Z"
-                  fill={isStopped ? '#EF4444' : '#DC2626'}
-                  filter={isStopped ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 1))' : 'drop-shadow(0 0 2px rgba(220, 38, 38, 0.7))'}
+                  d="M 20 74 L 28 75 L 26 86 L 19 84 Z"
+                  fill={brakeLightsOn ? '#EF4444' : '#DC2626'}
+                  filter={brakeLightsOn ? 'drop-shadow(0 0 10px rgba(239, 68, 68, 1))' : 'drop-shadow(0 0 3px rgba(220, 38, 38, 0.7))'}
                 />
 
-                {/* ── Detailed Realistic Alloy Wheels ── */}
-                {/* Rear Wheel */}
-                <g transform="translate(82, 116)">
-                  {/* Tire Rubber */}
-                  <circle cx="0" cy="0" r="23" fill="#18181B" stroke="#09090B" strokeWidth="2" />
-                  <circle cx="0" cy="0" r="18" fill="#27272A" />
-                  {/* Disc Brake & Red Caliper */}
-                  <circle cx="0" cy="0" r="13" fill="#71717A" />
-                  <rect x="-4" y="-12" width="6" height="8" rx="2" fill="#DC2626" />
-                  {/* 5-Spoke Alloy Rim (Rotating when driving) */}
-                  <g className={isDriving ? 'animate-wheel-drive' : ''}>
-                    <circle cx="0" cy="0" r="12" fill="none" stroke="url(#rimGrad)" strokeWidth="3" />
-                    <line x1="0" y1="-12" x2="0" y2="12" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    <line x1="-11.4" y1="-3.7" x2="11.4" y2="3.7" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    <line x1="-7" y1="9.7" x2="7" y2="-9.7" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    {/* Hub Cap */}
-                    <circle cx="0" cy="0" r="4" fill="#F59E0B" />
+                {/* Exhaust tip on rear bottom left */}
+                <rect x="15" y="103" width="7" height="3" rx="1.5" fill="#64748B" />
+
+                {/* ── 8. Detailed Rotating Wheels ── */}
+                {/* Rear Wheel (Left) */}
+                <g transform="translate(76, 110)">
+                  <circle cx="0" cy="0" r="22" fill="#18181B" stroke="#09090B" strokeWidth="2" />
+                  <circle cx="0" cy="0" r="17" fill="#27272A" />
+                  <circle cx="0" cy="0" r="13" fill="#52525B" />
+                  <circle cx="0" cy="0" r="12" fill="#71717A" stroke="#3F3F46" strokeWidth="0.5" />
+                  {/* Fixed Red Brake Caliper */}
+                  <path d="M -5 -12 Q 0 -13 5 -12 L 4 -7 Q 0 -8 -4 -7 Z" fill="#DC2626" />
+                  {/* Rotating 5-Spoke Alloy Rim (Rotates strictly around local center 0, 0) */}
+                  <g>
+                    {isDriving && (
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 0 0"
+                        to="360 0 0"
+                        dur="0.32s"
+                        repeatCount="indefinite"
+                      />
+                    )}
+                    <circle cx="0" cy="0" r="11" fill="none" stroke="url(#alloyGrad)" strokeWidth="2.5" />
+                    <line x1="0" y1="-11" x2="0" y2="11" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <line x1="-10.5" y1="-3.4" x2="10.5" y2="3.4" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <line x1="-6.5" y1="8.9" x2="6.5" y2="-8.9" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <circle cx="0" cy="0" r="3.5" fill="#FACC15" stroke="#CA8A04" strokeWidth="0.5" />
                   </g>
                 </g>
 
-                {/* Front Wheel */}
-                <g transform="translate(250, 116)">
-                  {/* Tire Rubber */}
-                  <circle cx="0" cy="0" r="23" fill="#18181B" stroke="#09090B" strokeWidth="2" />
-                  <circle cx="0" cy="0" r="18" fill="#27272A" />
-                  {/* Disc Brake & Red Caliper */}
-                  <circle cx="0" cy="0" r="13" fill="#71717A" />
-                  <rect x="-4" y="-12" width="6" height="8" rx="2" fill="#DC2626" />
-                  {/* 5-Spoke Alloy Rim (Rotating when driving) */}
-                  <g className={isDriving ? 'animate-wheel-drive' : ''}>
-                    <circle cx="0" cy="0" r="12" fill="none" stroke="url(#rimGrad)" strokeWidth="3" />
-                    <line x1="0" y1="-12" x2="0" y2="12" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    <line x1="-11.4" y1="-3.7" x2="11.4" y2="3.7" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    <line x1="-7" y1="9.7" x2="7" y2="-9.7" stroke="url(#rimGrad)" strokeWidth="2.5" />
-                    {/* Hub Cap */}
-                    <circle cx="0" cy="0" r="4" fill="#F59E0B" />
+                {/* Front Wheel (Right) */}
+                <g transform="translate(258, 110)">
+                  <circle cx="0" cy="0" r="22" fill="#18181B" stroke="#09090B" strokeWidth="2" />
+                  <circle cx="0" cy="0" r="17" fill="#27272A" />
+                  <circle cx="0" cy="0" r="13" fill="#52525B" />
+                  <circle cx="0" cy="0" r="12" fill="#71717A" stroke="#3F3F46" strokeWidth="0.5" />
+                  {/* Fixed Red Brake Caliper */}
+                  <path d="M -5 -12 Q 0 -13 5 -12 L 4 -7 Q 0 -8 -4 -7 Z" fill="#DC2626" />
+                  {/* Rotating 5-Spoke Alloy Rim (Rotates strictly around local center 0, 0) */}
+                  <g>
+                    {isDriving && (
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 0 0"
+                        to="360 0 0"
+                        dur="0.32s"
+                        repeatCount="indefinite"
+                      />
+                    )}
+                    <circle cx="0" cy="0" r="11" fill="none" stroke="url(#alloyGrad)" strokeWidth="2.5" />
+                    <line x1="0" y1="-11" x2="0" y2="11" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <line x1="-10.5" y1="-3.4" x2="10.5" y2="3.4" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <line x1="-6.5" y1="8.9" x2="6.5" y2="-8.9" stroke="url(#alloyGrad)" strokeWidth="2.4" />
+                    <circle cx="0" cy="0" r="3.5" fill="#FACC15" stroke="#CA8A04" strokeWidth="0.5" />
                   </g>
                 </g>
-
               </svg>
             </div>
           ) : (
-            /* ═══════════════ OPTION B: REALISTIC MODERN E-RICKSHAW ═══════════════ */
-            <div className="relative w-40 sm:w-48 h-24">
+            /* ═══════════════ OPTION B: AUTHENTIC CURVED INDIAN BBD E-RICKSHAW ═══════════════ */
+            <div className="relative w-48 sm:w-56 h-24">
               
-              {/* Headlight cone */}
+              {/* Forward Projecting Volumetric Headlight Cone (Ahead on Right) */}
               <div
-                className="absolute top-8 left-[70%] w-56 h-20 pointer-events-none z-10 transition-opacity duration-300"
+                className="absolute top-9 left-[80%] w-68 h-26 pointer-events-none z-10 transition-opacity duration-500"
                 style={{
-                  background: 'radial-gradient(ellipse at left, rgba(254, 240, 138, 0.45) 0%, rgba(254, 240, 138, 0.1) 60%, transparent 80%)',
-                  clipPath: 'polygon(0% 20%, 100% 0%, 100% 100%, 0% 80%)',
-                  opacity: isStopped ? 0.35 : 0.8
+                  background: 'radial-gradient(ellipse at left, rgba(254, 240, 138, 0.6) 0%, rgba(254, 240, 138, 0.15) 50%, transparent 75%)',
+                  clipPath: 'polygon(0% 25%, 100% 0%, 100% 100%, 0% 75%)',
+                  opacity: isStopped ? 0.35 : 0.85
                 }}
               ></div>
 
-              <svg viewBox="0 0 280 150" className="w-full h-full drop-shadow-[0_12px_20px_rgba(0,0,0,0.8)]">
-                {/* Shadow */}
-                <ellipse cx="140" cy="132" rx="110" ry="8" fill="#000" opacity="0.65" filter="blur(3px)" />
+              {/* Road Asphalt Illumination Glow Ahead */}
+              <div
+                className="absolute top-15 left-[88%] w-56 h-9 pointer-events-none rounded-full blur-md transition-opacity duration-500"
+                style={{
+                  background: 'radial-gradient(ellipse, rgba(254, 240, 138, 0.4) 0%, transparent 70%)',
+                  opacity: isStopped ? 0.25 : 0.75
+                }}
+              ></div>
 
-                {/* Canopy Roof Curve (Bright BBD Yellow) */}
+              {/* Rear Brake Light Glow onto Road (Behind on Left) */}
+              {brakeLightsOn && (
+                <div
+                  className="absolute top-11 -left-12 w-20 h-16 pointer-events-none rounded-full blur-lg animate-pulse"
+                  style={{
+                    background: 'radial-gradient(ellipse, rgba(239, 68, 68, 0.85) 0%, transparent 70%)'
+                  }}
+                ></div>
+              )}
+
+              <svg viewBox="0 0 340 140" className="w-full h-full drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]">
+                <defs>
+                  {/* High Gloss Lucknow Emerald Green */}
+                  <linearGradient id="rickshawGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#34D399" />
+                    <stop offset="35%" stopColor="#059669" />
+                    <stop offset="85%" stopColor="#047857" />
+                    <stop offset="100%" stopColor="#064E3B" />
+                  </linearGradient>
+
+                  {/* High Gloss Campus Golden Yellow */}
+                  <linearGradient id="rickshawYellow" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#FEF08A" />
+                    <stop offset="30%" stopColor="#FACC15" />
+                    <stop offset="75%" stopColor="#EAB308" />
+                    <stop offset="100%" stopColor="#9A3412" />
+                  </linearGradient>
+
+                  {/* Polished Chrome Tubular Frame */}
+                  <linearGradient id="chromeTubing" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" />
+                    <stop offset="30%" stopColor="#CBD5E1" />
+                    <stop offset="70%" stopColor="#64748B" />
+                    <stop offset="100%" stopColor="#F1F5F9" />
+                  </linearGradient>
+
+                  {/* Tinted Safety Glass Windshield */}
+                  <linearGradient id="rickshawGlass" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.85" />
+                    <stop offset="50%" stopColor="#38BDF8" stopOpacity="0.65" />
+                    <stop offset="100%" stopColor="#0284C7" stopOpacity="0.75" />
+                  </linearGradient>
+                </defs>
+
+                {/* Ground Shadow */}
+                <ellipse cx="170" cy="128" rx="148" ry="9" fill="#000" opacity="0.65" filter="blur(3px)" />
+
+                {/* ── 1. Aerodynamic Fiberglass Canopy Roof with Contours & Visor ── */}
+                {/* Curved Roof Shell (Not a box: sculpted aerodynamic curves) */}
                 <path
-                  d="M 35 55 
-                     C 55 22, 120 18, 175 22 
-                     L 220 38 
-                     C 238 46, 242 58, 238 72 
-                     L 225 72 
-                     L 35 68 
+                  d="M 46 42 
+                     C 42 30, 56 22, 74 18 
+                     C 120 12, 195 12, 238 18 
+                     C 252 20, 262 25, 268 32 
+                     C 272 37, 266 43, 256 44 
+                     L 245 42 
+                     C 210 38, 110 38, 48 44 
                      Z"
-                  fill="#FACC15"
-                  stroke="#EAB308"
-                  strokeWidth="2"
+                  fill="url(#rickshawYellow)"
+                  stroke="#CA8A04"
+                  strokeWidth="1.2"
                 />
 
-                {/* Rickshaw Cabin Frame & Metal Pillars */}
-                <line x1="50" y1="65" x2="50" y2="105" stroke="#1E293B" strokeWidth="4" />
-                <line x1="140" y1="65" x2="140" y2="105" stroke="#1E293B" strokeWidth="3" />
-                <line x1="215" y1="50" x2="205" y2="105" stroke="#1E293B" strokeWidth="4" />
-
-                {/* Tinted Windshield Glass */}
-                <path d="M 175 32 L 220 44 L 205 78 L 165 78 Z" fill="#38BDF8" fillOpacity="0.75" />
-
-                {/* Lower Chassis Body (Dual Tone Black & Yellow) */}
+                {/* Top Center Green Racing/Campus Accent Ribbon */}
                 <path
-                  d="M 25 88 
-                     L 240 88 
-                     L 225 118 
-                     C 215 106, 195 98, 180 98 
-                     C 165 98, 150 106, 142 118 
-                     L 75 118 
-                     C 68 106, 52 98, 38 98 
+                  d="M 52 38 
+                     C 70 24, 130 18, 232 24 
+                     L 252 34 
+                     L 242 37 
+                     C 150 28, 90 30, 50 40 
                      Z"
-                  fill="#111827"
-                  stroke="#FACC15"
-                  strokeWidth="2"
+                  fill="url(#rickshawGreen)"
+                  opacity="0.95"
                 />
 
-                {/* Driver Silhouette & Handlebar */}
-                <circle cx="185" cy="65" r="7" fill="#F97316" />
-                <line x1="195" y1="74" x2="205" y2="82" stroke="#000" strokeWidth="3" strokeLinecap="round" />
+                {/* Rooftop Chrome Luggage / Parcel Carrier Rails */}
+                <path
+                  d="M 72 16 L 228 16 M 85 16 L 85 20 M 130 14 L 130 18 M 175 14 L 175 18 M 215 16 L 215 20"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
 
-                {/* Passenger Silhouettes in Back */}
-                <circle cx="95" cy="74" r="6" fill="#3B82F6" />
-                <circle cx="120" cy="74" r="6" fill="#EC4899" />
+                {/* ── 2. Curved Tubular Stainless Steel Roll Cage Architecture ── */}
+                {/* Front A-Pillar (Gracefully raked curved tube supporting windshield) */}
+                <path
+                  d="M 252 41 
+                     C 246 54, 238 72, 232 94"
+                  fill="none"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
 
-                {/* Front Chrome Headlight */}
-                <circle cx="236" cy="86" r="6" fill="#FEF08A" filter="drop-shadow(0 0 6px rgba(254, 240, 138, 0.9))" />
+                {/* Middle B-Pillar (Curved center arch with smooth 45° bends) */}
+                <path
+                  d="M 152 40 
+                     L 150 96"
+                  fill="none"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
 
-                {/* Rear Tail light */}
-                <rect x="22" y="86" width="4" height="10" rx="1" fill={isStopped ? '#EF4444' : '#B91C1C'} />
+                {/* Rear C-Pillar (Wraps into rear support) */}
+                <path
+                  d="M 54 42 
+                     C 50 58, 48 76, 48 96"
+                  fill="none"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
 
-                {/* Rear Wheel */}
-                <g transform="translate(48, 118)">
-                  <circle cx="0" cy="0" r="18" fill="#18181B" stroke="#09090B" strokeWidth="2" />
-                  <circle cx="0" cy="0" r="12" fill="#3F3F46" />
-                  <g className={isDriving ? 'animate-wheel-drive' : ''}>
-                    <line x1="0" y1="-12" x2="0" y2="12" stroke="#E4E4E7" strokeWidth="2" />
-                    <line x1="-12" y1="0" x2="12" y2="0" stroke="#E4E4E7" strokeWidth="2" />
-                    <circle cx="0" cy="0" r="3" fill="#FACC15" />
+                {/* Curved Side Safety Passenger Rail (Wavy ergonomic chrome tube, NOT a flat wall) */}
+                <path
+                  d="M 50 82 
+                     C 80 80, 110 74, 142 82 
+                     C 148 84, 150 92, 148 96 
+                     L 54 96"
+                  fill="none"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <line x1="96" y1="80" x2="96" y2="96" stroke="url(#chromeTubing)" strokeWidth="2" />
+
+                {/* ── 3. Aerodynamic Curved Front Windshield & Wiper ── */}
+                <path
+                  d="M 248 37 
+                     L 258 35 
+                     C 255 52, 246 72, 240 82 
+                     L 228 82 
+                     Z"
+                  fill="url(#rickshawGlass)"
+                  stroke="#0284C7"
+                  strokeWidth="0.8"
+                />
+                {/* Delicate Wiper blade */}
+                <line x1="238" y1="62" x2="248" y2="52" stroke="#0F172A" strokeWidth="1.2" strokeLinecap="round" />
+
+                {/* ── 4. Sculpted Front Nose Cowl / Apron (Green & Yellow) ── */}
+                {/* Aerodynamic leg-shield curved apron */}
+                <path
+                  d="M 228 82 
+                     C 236 83, 246 83, 252 87 
+                     C 258 92, 260 100, 256 107 
+                     L 236 107 
+                     C 234 98, 230 89, 228 82 
+                     Z"
+                  fill="url(#rickshawGreen)"
+                  stroke="#047857"
+                  strokeWidth="1.2"
+                />
+                {/* Yellow front nose stripe */}
+                <path d="M 242 84 L 249 86 L 244 106 L 238 106 Z" fill="url(#rickshawYellow)" />
+
+                {/* ── 5. Driver & College Passenger Silhouettes ── */}
+                {/* Interior warm dome light glow under canopy */}
+                <ellipse cx="140" cy="45" rx="55" ry="6" fill="#FEF08A" opacity="0.3" filter="blur(4px)" />
+
+                {/* Passengers (Rear Cabin) */}
+                {/* Passenger 1 (Girl with ponytail) */}
+                <circle cx="82" cy="62" r="6" fill="#F472B6" />
+                <path d="M 76 63 Q 71 67 74 72" fill="none" stroke="#F472B6" strokeWidth="2" strokeLinecap="round" />
+                <path d="M 75 74 L 89 74 L 87 92 L 73 92 Z" fill="#4F46E5" rx="2" />
+                {/* College Backpack */}
+                <rect x="68" y="72" width="7" height="14" rx="2.5" fill="#E11D48" />
+
+                {/* Passenger 2 (Boy with headphone band) */}
+                <circle cx="116" cy="61" r="6.5" fill="#38BDF8" />
+                <path d="M 109 60 Q 116 53 123 60" fill="none" stroke="#FBBF24" strokeWidth="1.8" />
+                <path d="M 108 73 L 124 73 L 122 92 L 106 92 Z" fill="#0D9488" rx="2" />
+
+                {/* Passenger Cushioned Bench with Padded Backrest */}
+                <rect x="62" y="78" width="82" height="16" rx="4" fill="#1E293B" stroke="#334155" strokeWidth="1" />
+                <rect x="64" y="90" width="78" height="5" rx="1.5" fill="#334155" />
+
+                {/* Driver (Front Saddle) */}
+                {/* Driver Head & Cap */}
+                <circle cx="204" cy="58" r="6.5" fill="#F59E0B" />
+                <path d="M 200 53 L 213 54 L 208 57 Z" fill="#1E293B" />
+                {/* Driver Body leaning forward */}
+                <path d="M 196 69 L 212 69 L 215 88 L 194 88 Z" fill="#1E293B" rx="2" />
+                {/* Driver Leather Saddle Seat */}
+                <path d="M 188 88 C 188 84, 214 84, 214 88 L 210 94 L 192 94 Z" fill="#0F172A" />
+                {/* Chrome Handlebars with Grips & Mirror */}
+                <line x1="214" y1="74" x2="228" y2="78" stroke="url(#chromeTubing)" strokeWidth="2.8" strokeLinecap="round" />
+                <circle cx="228" cy="78" r="2" fill="#0F172A" />
+                <line x1="223" y1="74" x2="225" y2="68" stroke="url(#chromeTubing)" strokeWidth="1.5" />
+                <ellipse cx="225" cy="67" rx="2.5" ry="4" fill="#38BDF8" stroke="#334155" strokeWidth="0.8" />
+
+                {/* ── 6. Front Fork & Chrome Bullbar Assembly ── */}
+                {/* Heavy Duty Telescopic Hydraulic Twin Forks (Leading to front axle) */}
+                <line x1="240" y1="78" x2="265" y2="112" stroke="url(#chromeTubing)" strokeWidth="4" strokeLinecap="round" />
+                {/* Chrome Twin Shock Absorber Coils */}
+                <line x1="244" y1="84" x2="257" y2="102" stroke="#FACC15" strokeWidth="3" strokeDasharray="2 3" />
+
+                {/* Front Chrome Crash Guard / Bullbar */}
+                <path
+                  d="M 245 106 
+                     C 264 104, 280 104, 282 108 
+                     C 282 114, 270 118, 258 118"
+                  fill="none"
+                  stroke="url(#chromeTubing)"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
+
+                {/* Large Round Crystal LED Headlight (High Mounted on Fork, Facing Right) */}
+                <g transform="translate(260, 80)">
+                  {/* Chrome housing */}
+                  <circle cx="0" cy="0" r="7" fill="url(#chromeTubing)" stroke="#475569" strokeWidth="1" />
+                  {/* Glowing lens */}
+                  <circle cx="1" cy="0" r="5" fill="#FEF08A" filter="drop-shadow(0 0 6px rgba(254, 240, 138, 0.95))" />
+                  <circle cx="2" cy="0" r="2.5" fill="#FFFFFF" />
+                  {/* Amber Bullet Turn Indicator */}
+                  <rect x="-3" y="6" width="3" height="4" rx="1.5" fill="#F59E0B" />
+                </g>
+
+                {/* ── 7. Lower Body Chassis, Battery Pack & Footstep ── */}
+                {/* Lower Side Body Skirt with Emerald Green & Yellow Pinstripe */}
+                <path
+                  d="M 44 96 
+                     L 234 96 
+                     C 230 106, 222 114, 214 116 
+                     L 138 116 
+                     C 134 108, 126 102, 116 102 
+                     C 106 102, 98 108, 94 116 
+                     L 46 116 
+                     Z"
+                  fill="url(#rickshawGreen)"
+                  stroke="#047857"
+                  strokeWidth="1.2"
+                />
+
+                {/* Battery Compartment Cover with HopIn Badge */}
+                <g transform="translate(142, 100)">
+                  <rect width="44" height="14" rx="3" fill="#0F172A" stroke="#FACC15" strokeWidth="1" />
+                  <text x="22" y="10" fill="#FACC15" fontSize="7" fontWeight="900" textAnchor="middle" letterSpacing="0.5">
+                    HopIn EV
+                  </text>
+                </g>
+
+                {/* Diamond-Plate Aluminum Passenger Footboard / Boarding Step */}
+                <rect x="58" y="112" width="76" height="4" rx="1.5" fill="url(#chromeTubing)" stroke="#64748B" strokeWidth="0.8" />
+
+                {/* Rear Chrome Bumper Bar (Facing Left) */}
+                <path d="M 42 104 L 35 107 L 35 116 L 44 116" fill="none" stroke="url(#chromeTubing)" strokeWidth="3" strokeLinecap="round" />
+
+                {/* Multi-Element Rear LED Taillight (Facing Left) */}
+                <g transform="translate(38, 92)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="6"
+                    height="12"
+                    rx="2"
+                    fill={brakeLightsOn ? '#EF4444' : '#DC2626'}
+                    filter={brakeLightsOn ? 'drop-shadow(0 0 10px rgba(239, 68, 68, 1))' : 'drop-shadow(0 0 3px rgba(220, 38, 38, 0.7))'}
+                  />
+                  <circle cx="3" cy="3" r="1.5" fill="#FEF08A" />
+                </g>
+
+                {/* ── 8. High-Detail Wheels with Concentric Rotating Spokes ── */}
+                {/* Rear Wheel (Left) */}
+                <g transform="translate(76, 112)">
+                  {/* Stationary Tire & Mudguard */}
+                  <path d="M -22 -2 C -22 -14, 22 -14, 22 -2" fill="none" stroke="url(#rickshawGreen)" strokeWidth="3" strokeLinecap="round" />
+                  <circle cx="0" cy="0" r="19" fill="#18181B" stroke="#09090B" strokeWidth="2" />
+                  <circle cx="0" cy="0" r="14" fill="#27272A" />
+                  <circle cx="0" cy="0" r="12" fill="#475569" stroke="#334155" strokeWidth="0.5" />
+                  {/* Concentric Rotating Chrome Spokes (Centered strictly on 0, 0) */}
+                  <g>
+                    {isDriving && (
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 0 0"
+                        to="360 0 0"
+                        dur="0.32s"
+                        repeatCount="indefinite"
+                      />
+                    )}
+                    <line x1="0" y1="-12" x2="0" y2="12" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-12" y1="0" x2="12" y2="0" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-8.5" y1="-8.5" x2="8.5" y2="8.5" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-8.5" y1="8.5" x2="8.5" y2="-8.5" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <circle cx="0" cy="0" r="3.5" fill="#FACC15" stroke="#CA8A04" strokeWidth="0.6" />
                   </g>
                 </g>
 
-                {/* Front Wheel */}
-                <g transform="translate(198, 118)">
-                  <circle cx="0" cy="0" r="18" fill="#18181B" stroke="#09090B" strokeWidth="2" />
-                  <circle cx="0" cy="0" r="12" fill="#3F3F46" />
-                  <g className={isDriving ? 'animate-wheel-drive' : ''}>
-                    <line x1="0" y1="-12" x2="0" y2="12" stroke="#E4E4E7" strokeWidth="2" />
-                    <line x1="-12" y1="0" x2="12" y2="0" stroke="#E4E4E7" strokeWidth="2" />
-                    <circle cx="0" cy="0" r="3" fill="#FACC15" />
+                {/* Front Single Wheel (Right) with Chrome Mudguard */}
+                <g transform="translate(265, 112)">
+                  {/* Chrome Curved Front Mudguard */}
+                  <path d="M -22 -4 C -22 -16, 16 -16, 20 -2" fill="none" stroke="url(#chromeTubing)" strokeWidth="3" strokeLinecap="round" />
+                  {/* Tire */}
+                  <circle cx="0" cy="0" r="19" fill="#18181B" stroke="#09090B" strokeWidth="2" />
+                  <circle cx="0" cy="0" r="14" fill="#27272A" />
+                  <circle cx="0" cy="0" r="12" fill="#475569" stroke="#334155" strokeWidth="0.5" />
+                  {/* Concentric Rotating Chrome Spokes (Centered strictly on 0, 0) */}
+                  <g>
+                    {isDriving && (
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 0 0"
+                        to="360 0 0"
+                        dur="0.32s"
+                        repeatCount="indefinite"
+                      />
+                    )}
+                    <line x1="0" y1="-12" x2="0" y2="12" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-12" y1="0" x2="12" y2="0" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-8.5" y1="-8.5" x2="8.5" y2="8.5" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <line x1="-8.5" y1="8.5" x2="8.5" y2="-8.5" stroke="url(#chromeTubing)" strokeWidth="1.8" />
+                    <circle cx="0" cy="0" r="3.5" fill="#FACC15" stroke="#CA8A04" strokeWidth="0.6" />
                   </g>
                 </g>
               </svg>
@@ -512,7 +887,7 @@ export const CityStreetAnimation = () => {
       </div>
 
       {/* ── Status Indicator Bar (Bottom Left) ───────────────────────────── */}
-      <div className="absolute bottom-2 left-3 z-30 flex items-center gap-2">
+      <div className="absolute bottom-2 left-3 z-40 flex items-center gap-2">
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-gray-300">
           <span
             className={`w-2 h-2 rounded-full ${
@@ -520,13 +895,13 @@ export const CityStreetAnimation = () => {
             }`}
           ></span>
           <span>
-            {phase === 'driving-in'
+            {phase === 'approaching'
               ? 'Arriving at Campus Hub...'
               : phase === 'stopped-drop'
               ? 'Alighting Co-Riders ✓'
               : phase === 'stopped-pick'
               ? 'Boarding New Students...'
-              : 'Cruising via Ayodhya Highway ⚡'}
+              : 'Cruising forward via Ayodhya Highway ⚡'}
           </span>
         </span>
       </div>

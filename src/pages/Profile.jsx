@@ -42,7 +42,7 @@ const PRESET_AVATARS = [
 
 export const Profile = () => {
   const { user, updateUserProfile, logout } = useAuth();
-  const { lang, toggleLanguage } = useLanguage();
+  const { lang, toggleLanguage, t } = useLanguage();
 
   // Form state
   const [name, setName] = useState(user?.name || '');
