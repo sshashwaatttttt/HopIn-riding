@@ -347,17 +347,17 @@ export const GatekeeperAuth = () => {
             </div>
 
             <p className="text-[11px] font-medium text-gray-400 leading-relaxed pt-0.5">
-              Personal Google accounts (<span className="font-bold text-gray-300">@gmail.com</span>) are automatically blocked. Sign in with your official college Google account.
+              Personal Gmail accounts are blocked. Please choose your official college Google account (<span className="font-bold text-gray-300">@bbdu.ac.in</span>, <span className="font-bold text-gray-300">@bbdniit.ac.in</span>, or <span className="font-bold text-gray-300">@bbdnitm.ac.in</span>).
             </p>
           </div>
 
-          {/* Main "Sign in with Google" Action Button */}
+          {/* Main "Sign in with Google" Action Button & Recovery Flow */}
           <div className="space-y-3 pt-1">
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-gray-100 text-gray-900 font-extrabold text-sm border-2 border-white/80 hover:border-amber-400 shadow-xl shadow-white/10 transition-all flex items-center justify-center gap-3 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed group relative overflow-hidden"
+              className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-gray-100 text-gray-900 font-extrabold text-sm border-2 border-white/80 hover:border-amber-400 shadow-xl shadow-white/10 transition-all flex items-center justify-center gap-3 active:scale-98 disabled:opacity-85 disabled:cursor-wait group relative overflow-hidden"
             >
               {loading ? (
                 <>
@@ -393,16 +393,43 @@ export const GatekeeperAuth = () => {
               )}
             </button>
 
-            <p className="text-[11px] text-center font-medium text-gray-400 flex items-center justify-center gap-1.5 pt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Select any logged-in Gmail on your device</span>
-            </p>
+            {/* Recovery Action if Stalled */}
+            {loading && (
+              <div className="flex items-center justify-center gap-2 pt-1 animate-in fade-in duration-300">
+                <span className="text-[11px] text-gray-400">Taking longer than expected?</span>
+                <button
+                  type="button"
+                  onClick={() => cancelGoogleSignIn()}
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                >
+                  Cancel & Retry
+                </button>
+              </div>
+            )}
+
+            {!loading && (
+              <div className="space-y-1.5 pt-1 text-center">
+                <p className="text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>Choose your official college Google account on your device</span>
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  Wrong account selected? Tap above and choose <em>"Use another account"</em> in the Google prompt.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Concrete Campus Value Statement */}
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300/90 text-xs font-semibold flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>Connect with verified BBD batchmates heading in your direction & split auto/cab fares.</span>
           </div>
 
           {/* Security / Privacy Trust Badge */}
           <div className="pt-2 border-t border-gray-800/80 flex items-center justify-center gap-2 text-[11px] font-bold text-gray-400">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Restricted to Verified Students • Instant Verification</span>
+            <span>Verified Student Domain Access • Safe Campus Commuting</span>
           </div>
 
         </div>

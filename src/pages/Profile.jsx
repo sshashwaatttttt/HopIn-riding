@@ -264,9 +264,12 @@ export const Profile = () => {
           {/* Gender Selection */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
-              <span>Gender ('Girls Only' Ride Safety Filter)</span>
+              <span>Gender (Used for 'Women Only' Ride Filter)</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              Self-declared profile setting. Female riders can choose to join or create female-only ride pools.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-0.5">
               {[
                 { id: 'female', label: 'Female', icon: '👩', activeBg: 'from-pink-500 to-rose-600 border-pink-400' },
                 { id: 'male', label: 'Male', icon: '👨', activeBg: 'from-blue-600 to-cyan-600 border-blue-400' },
@@ -276,7 +279,7 @@ export const Profile = () => {
                   key={item.id}
                   type="button"
                   onClick={() => setGender(item.id)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 border transition-all ${
+                  className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 border transition-all ${
                     gender === item.id
                       ? `bg-gradient-to-r ${item.activeBg} text-white shadow-md`
                       : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-amber-400'
@@ -291,14 +294,15 @@ export const Profile = () => {
 
           {/* Branch / Course */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+            <label htmlFor="profile-branch-select" className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
               <GraduationCap className="w-3.5 h-3.5 text-cyan-500" />
               <span>Branch / Department</span>
             </label>
             <select
+              id="profile-branch-select"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
+              className="w-full min-h-[44px] px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
             >
               <option value="B.Tech CSE">B.Tech Computer Science (CSE)</option>
               <option value="B.Tech IT">B.Tech Information Technology</option>
@@ -314,29 +318,33 @@ export const Profile = () => {
             </select>
           </div>
 
-          {/* WhatsApp / Phone */}
+          {/* WhatsApp / Phone with Clear Privacy Notice */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center justify-between">
+            <label htmlFor="profile-phone-input" className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-emerald-500" />
                 <span>WhatsApp / Phone Number</span>
               </span>
-              <span className="text-[10px] text-gray-400">For ride pickup coordination</span>
+              <span className="text-[10px] font-semibold text-gray-400">Optional</span>
             </label>
             <input
+              id="profile-phone-input"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 9876543210"
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              className="w-full min-h-[44px] px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
             />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal">
+              🔒 <strong>Privacy:</strong> Only visible to accepted co-riders in your squad for pickup coordination. Never shared publicly.
+            </p>
           </div>
 
           {/* Save Profile Button */}
           <button
             type="submit"
             disabled={saving || !name.trim()}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-98 transition-all disabled:opacity-50"
+            className="w-full min-h-[48px] py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-98 transition-all disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -352,20 +360,24 @@ export const Profile = () => {
           </button>
         </form>
 
-        {/* ── Stats & Preferences ─────────────────────────────────────────── */}
+        {/* ── Stats & Trust Scope ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50 text-center">
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase block">Rider Rating</span>
-            <span className="text-lg font-black text-amber-500 flex items-center justify-center gap-1">
-              <Star className="w-4 h-4 fill-amber-500" />
-              {user.rating || 5.0} ⭐
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase block">Rider Rating</span>
+            <span className="text-sm font-black text-amber-500 flex items-center justify-center gap-1 mt-0.5">
+              <Star className="w-3.5 h-3.5 fill-amber-500" />
+              <span>{user.rating ? `${user.rating} ★` : '5.0 ★'}</span>
+              <span className="text-[10px] text-gray-400 font-medium">(New Member)</span>
             </span>
           </div>
 
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase block">Security Status</span>
-            <span className="text-xs font-extrabold text-emerald-500 block mt-1">
-              Verified Student ✓
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase block">Verification Scope</span>
+            <span className="text-xs font-extrabold text-emerald-500 block mt-0.5">
+              College Email Verified ✓
+            </span>
+            <span className="text-[9px] text-gray-400 block">
+              Official BBD Domain Access
             </span>
           </div>
         </div>

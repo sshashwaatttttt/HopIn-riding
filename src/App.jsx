@@ -11,6 +11,7 @@ import { CreateRide } from './pages/CreateRide';
 import { RideDetail } from './pages/RideDetail';
 import { SquadChat } from './pages/SquadChat';
 import { Profile } from './pages/Profile';
+import { ScrollToTop } from './components/ScrollToTop';
 
 const AppRoutes = ({ deferredPrompt, installPWA }) => {
   const { user } = useAuth();
@@ -35,6 +36,9 @@ const AppRoutes = ({ deferredPrompt, installPWA }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col font-sans transition-colors duration-200">
       
+      {/* Route Navigation Scroll & Focus Reset */}
+      <ScrollToTop />
+
       {/* Persistent Navbar */}
       <Navbar deferredPrompt={deferredPrompt} installPWA={installPWA} />
 

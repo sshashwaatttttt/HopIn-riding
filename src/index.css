@@ -102,3 +102,15 @@
 .animate-road-move {
   animation: road-scroll 0.8s linear infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-suspension,
+  .animate-braking,
+  .animate-accelerating,
+  .animate-wheel-drive,
+  .animate-road-move,
+  .animate-float {
+    animation: none !important;
+    transition: none !important;
+  }
+}

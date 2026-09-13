@@ -59,13 +59,15 @@ export const Navbar = ({ deferredPrompt, installPWA }) => {
         </div>
 
         {/* Right Action Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           
           {/* PWA Install Button */}
           {deferredPrompt && (
             <button
+              type="button"
               onClick={installPWA}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-gray-950 shadow-md transition-all animate-bounce"
+              className="min-h-[44px] min-w-[44px] flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 shadow-md transition-all animate-bounce"
+              aria-label="Install HopIn Progressive Web App"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Install PWA</span>
@@ -74,18 +76,22 @@ export const Navbar = ({ deferredPrompt, installPWA }) => {
 
           {/* Gen-Z Language Switcher */}
           <button
+            type="button"
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold rounded-lg bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 transition-all shadow-sm active:scale-95"
+            className="min-h-[44px] flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-extrabold rounded-xl bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 transition-all shadow-sm active:scale-95 shrink-0"
+            aria-label={`Switch language mode. Currently in ${lang === 'genz' ? 'Gen-Z' : 'English'} mode.`}
             title="Toggle Normal English vs Gen-Z Mode"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-            <span>{lang === 'genz' ? 'Gen-Z 💀' : 'English 🇬🇧'}</span>
+            <Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+            <span className="text-[11px] sm:text-xs">{lang === 'genz' ? 'Gen-Z 💀' : 'EN 🇬🇧'}</span>
           </button>
 
-          {/* Dark Mode Toggle */}
+          {/* Dark Mode Toggle (44px touch target) */}
           <button
+            type="button"
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 transition-colors shrink-0"
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             title="Toggle Dark/Light Mode"
           >
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -97,25 +103,32 @@ export const Navbar = ({ deferredPrompt, installPWA }) => {
               {/* Create Ride Button */}
               <Link
                 to="/create"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 text-gray-950 hover:brightness-110 shadow-md shadow-amber-500/20 transition-all transform active:scale-95"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-black rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-gray-950 hover:brightness-110 shadow-md shadow-amber-500/20 transition-all transform active:scale-95 shrink-0"
+                aria-label="Create a Ride"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">{t('createRide')}</span>
               </Link>
 
-              {/* Profile Avatar & Logout */}
-              <div className="relative group flex items-center gap-2 pl-1">
-                <Link to="/profile">
+              {/* Profile Avatar (Guaranteed Non-Compressing) & Logout */}
+              <div className="relative flex items-center gap-1 sm:gap-2 shrink-0">
+                <Link
+                  to="/profile"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label={`View profile of ${user.name}`}
+                >
                   <img
                     src={user.avatar}
                     alt={user.name}
-                    className="w-8 h-8 rounded-full border-2 border-amber-500 object-cover cursor-pointer hover:scale-105 transition-transform"
+                    className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-full border-2 border-amber-500 object-cover cursor-pointer hover:scale-105 transition-transform"
                   />
                 </Link>
 
                 <button
+                  type="button"
                   onClick={logout}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                  aria-label="Log out of HopIn"
                   title="Logout"
                 >
                   <LogOut className="w-4 h-4" />

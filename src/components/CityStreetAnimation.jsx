@@ -15,6 +15,15 @@ export const CityStreetAnimation = () => {
   useEffect(() => {
     let active = true;
 
+    // Respect system reduced motion preference
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setCarLeft(38);
+      setPhase('stopped-pick');
+      setNoTransition(true);
+      return;
+    }
+
     // Run a clean, strictly forward-moving physics cycle
     const runCycle = () => {
       if (!active) return;
@@ -887,22 +896,10 @@ export const CityStreetAnimation = () => {
       </div>
 
       {/* ── Status Indicator Bar (Bottom Left) ───────────────────────────── */}
-      <div className="absolute bottom-2 left-3 z-40 flex items-center gap-2">
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-bold text-gray-300">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isDriving ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-            }`}
-          ></span>
-          <span>
-            {phase === 'approaching'
-              ? 'Arriving at Campus Hub...'
-              : phase === 'stopped-drop'
-              ? 'Alighting Co-Riders ✓'
-              : phase === 'stopped-pick'
-              ? 'Boarding New Students...'
-              : 'Cruising forward via Ayodhya Highway ⚡'}
-          </span>
+      <div className="absolute bottom-2 left-3 z-40 flex items-center gap-2 pointer-events-none">
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-gray-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span>Street Preview: BBD Transit Corridor ⚡</span>
         </span>
       </div>
 

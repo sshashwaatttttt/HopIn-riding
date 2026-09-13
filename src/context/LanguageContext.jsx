@@ -5,7 +5,7 @@ const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
-    return localStorage.getItem('hopin_language') || 'genz'; // Default Gen-Z Mode for maximum wow factor!
+    return localStorage.getItem('hopin_language') || 'en'; // Clean English as default, Gen-Z available via header toggle
   });
 
   useEffect(() => {

@@ -149,40 +149,47 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        const email = (fbUser.email || '').toLowerCase().trim();
-        if (!isCollegeDomain(email)) {
-          try {
-            await signOut(auth);
-          } catch (e) {}
-          return;
-        }
+      try {
+        if (fbUser) {
+          const email = (fbUser.email || '').toLowerCase().trim();
+          if (!isCollegeDomain(email)) {
+            try {
+              await signOut(auth);
+            } catch (e) {}
+            return;
+          }
 
-        // If no user is loaded in state yet, check if profile exists
-        if (!user) {
-          const profile = await fetchUserProfile(fbUser.uid, email);
-          if (profile) {
-            setUser(profile);
-            setNeedsProfile(false);
-          } else {
-            const domain = '@' + email.split('@')[1];
-            setPendingGoogleUser({
-              uid: fbUser.uid,
-              email,
-              displayName: fbUser.displayName || email.split('@')[0],
-              photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-              domain
-            });
-            setNeedsProfile(true);
+          // If no user is loaded in state yet, check if profile exists
+          if (!user) {
+            const profile = await fetchUserProfile(fbUser.uid, email);
+            if (profile) {
+              setUser(profile);
+              setNeedsProfile(false);
+            } else {
+              const domain = '@' + email.split('@')[1];
+              setPendingGoogleUser({
+                uid: fbUser.uid,
+                email,
+                displayName: fbUser.displayName || email.split('@')[0],
+                photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
+                domain
+              });
+              setNeedsProfile(true);
+            }
           }
         }
+      } catch (err) {
+        console.error('onAuthStateChanged error:', err);
+      } finally {
+        // Critical UX fix: Ensure loading state is released when auth state changes resolve
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  // ── Sign in with Google (forces account picker) ───────────────────────────
+  // ── Sign in with Google (forces account picker with bounded timeout) ───────
   const signInWithGoogle = async () => {
     if (!isFirebaseConfigured() || !auth || !googleProvider) {
       return { success: false, message: 'Firebase authentication is not ready.' };
@@ -191,10 +198,23 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setAuthError('');
 
+    // Bounded timeout (12s) to prevent permanent button hang in embedded browsers or stalled popups
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        const timeoutErr = new Error('Sign-in window took too long to respond. Please check if a Google popup was blocked, or tap Retry.');
+        timeoutErr.code = 'auth/timeout';
+        reject(timeoutErr);
+      }, 12000);
+    });
+
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      const signInPromise = signInWithPopup(auth, googleProvider);
+      const result = await Promise.race([signInPromise, timeoutPromise]);
+      clearTimeout(timeoutId);
       return await processAuthenticatedUser(result.user);
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error('Google sign-in error:', err);
 
       if (err.code === 'auth/popup-blocked') {
@@ -211,14 +231,16 @@ export const AuthProvider = ({ children }) => {
 
       setLoading(false);
       if (err.code === 'auth/popup-closed-by-user') {
-        return { success: false, message: 'Sign-in window closed. Please select your college Google account.' };
+        return { success: false, message: 'Sign-in window closed. Please select your official college Google account.' };
       }
 
       let message = err.message || 'Failed to sign in with Google.';
-      if (err.code === 'auth/operation-not-allowed') {
-        message = 'Google provider is not enabled in Firebase. Please enable "Google" under Firebase Console → Authentication → Sign-in method (takes 10 seconds).';
+      if (err.code === 'auth/timeout') {
+        message = 'Connection to Google timed out. If a pop-up was blocked or hidden, please tap Retry.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        message = 'Google provider is not enabled in Firebase. Please enable "Google" under Firebase Console → Authentication → Sign-in method.';
       } else if (err.code === 'auth/unauthorized-domain') {
-        message = 'This domain is not authorized in Firebase. Add localhost and your ngrok domain in Firebase Console → Authentication → Settings → Authorized Domains.';
+        message = 'This domain is not authorized in Firebase. Add localhost and your live domain in Firebase Console → Authentication → Settings → Authorized Domains.';
       }
 
       setAuthError(message);
