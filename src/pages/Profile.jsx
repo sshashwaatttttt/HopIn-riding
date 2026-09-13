@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -7,8 +7,6 @@ import {
   Sparkles,
   LogOut,
   CheckCircle2,
-  Camera,
-  Upload,
   Dices,
   User,
   Phone,
@@ -38,49 +36,9 @@ const PRESET_AVATARS = [
   { id: 'lore-4', name: 'Vikram', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Vikram' }
 ];
 
-// Helper to resize and compress uploaded image using HTML5 Canvas
-const compressImage = (file, maxWidth = 320, maxHeight = 320, quality = 0.85) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = (err) => reject(err);
-    };
-    reader.onerror = (err) => reject(err);
-  });
-};
-
 export const Profile = () => {
   const { user, updateUserProfile, logout } = useAuth();
   const { lang, toggleLanguage } = useLanguage();
-
-  const fileInputRef = useRef(null);
 
   // Form state
   const [name, setName] = useState(user?.name || '');
@@ -93,38 +51,8 @@ export const Profile = () => {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   if (!user) return null;
-
-  // Handle image file upload
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
-      return;
-    }
-
-    try {
-      setUploadingPhoto(true);
-      const compressedDataUrl = await compressImage(file);
-      setAvatar(compressedDataUrl);
-
-      // Auto-save the new photo to profile
-      await updateUserProfile({ avatar: compressedDataUrl });
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
-    } catch (err) {
-      console.error('Photo upload failed:', err);
-      alert('Failed to process image. Please try another photo.');
-    } finally {
-      setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
 
   // Generate random avatar
   const handleRandomizeAvatar = async () => {
@@ -173,23 +101,13 @@ export const Profile = () => {
 
   return (
     <div className="max-w-xl mx-auto py-4 space-y-6 pb-16 animate-in fade-in duration-300">
-      
-      {/* Hidden file input for real photo upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handlePhotoUpload}
-        accept="image/*"
-        className="hidden"
-      />
-
       {/* Main Profile & Avatar Card */}
       <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-3xl p-6 md:p-8 border border-gray-200/80 dark:border-gray-800 shadow-2xl space-y-6 relative overflow-hidden">
         
         {/* Top ambient color glow accent */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-pink-500 to-cyan-400"></div>
 
-        {/* ── Avatar & Photo Customization ─────────────────────────────────── */}
+        {/* ── Avatar Customization ─────────────────────────────────────────── */}
         <div className="flex flex-col items-center text-center space-y-3">
           <div className="relative group">
             <div className="w-28 h-28 rounded-3xl p-1 bg-gradient-to-tr from-amber-400 via-orange-400 to-pink-500 shadow-xl shadow-amber-500/20">
@@ -199,21 +117,6 @@ export const Profile = () => {
                 className="w-full h-full rounded-[22px] object-cover bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-900"
               />
             </div>
-
-            {/* Camera action badge button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              title="Upload profile photo"
-              className="absolute -bottom-1 -right-1 p-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-white shadow-lg ring-4 ring-white dark:ring-gray-900 transition-transform active:scale-90 hover:scale-105"
-            >
-              {uploadingPhoto ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Camera className="w-4 h-4" />
-              )}
-            </button>
 
             {/* Verified student check badge */}
             <span className="absolute -top-1 -left-1 p-1.5 rounded-xl bg-emerald-500 text-white shadow ring-2 ring-white dark:ring-gray-900">
@@ -235,39 +138,28 @@ export const Profile = () => {
           </div>
 
           {/* Avatar Customization Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 w-full">
-            {/* Upload real photo */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-            >
-              <Upload className="w-3.5 h-3.5 text-amber-500" />
-              <span>{uploadingPhoto ? 'Processing...' : 'Upload Photo'}</span>
-            </button>
-
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1 w-full">
             {/* Choose avatar gallery */}
             <button
               type="button"
               onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm border ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-md border ${
                 showAvatarPicker
-                  ? 'bg-amber-500 text-white border-amber-500 shadow-amber-500/20'
-                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border-transparent'
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-amber-500/20 scale-102'
+                  : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200/60 dark:border-gray-700'
               }`}
             >
-              <Palette className="w-3.5 h-3.5 text-pink-500" />
-              <span>Pick Avatar</span>
+              <Palette className="w-4 h-4 text-pink-500" />
+              <span>{showAvatarPicker ? 'Close Avatars' : 'Pick Avatar 🎭'}</span>
             </button>
 
             {/* Randomize dice */}
             <button
               type="button"
               onClick={handleRandomizeAvatar}
-              className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+              className="px-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-md border border-gray-200/60 dark:border-gray-700"
             >
-              <Dices className="w-3.5 h-3.5 text-cyan-500" />
+              <Dices className="w-4 h-4 text-cyan-500" />
               <span>Shuffle 🎲</span>
             </button>
           </div>
