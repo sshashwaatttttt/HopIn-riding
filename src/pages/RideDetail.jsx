@@ -13,7 +13,9 @@ import {
   addChatMessage,
   editChatMessage,
   deleteChatMessage,
-  updateRideStatus
+  updateRideStatus,
+  getBlockedUserIds,
+  unblockUser
 } from '../utils/store';
 import { SOSModal } from '../components/SOSModal';
 import { RatingModal } from '../components/RatingModal';
@@ -34,7 +36,8 @@ import {
   CheckCircle2,
   FileText,
   SlidersHorizontal,
-  Lock
+  Lock,
+  UserCheck
 } from 'lucide-react';
 
 export const RideDetail = () => {
@@ -69,10 +72,12 @@ export const RideDetail = () => {
   // Modals
   const [isSosOpen, setIsSosOpen] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
 
   const fetchRideAndChat = () => {
     const data = getRideById(rideId);
     setRide(data);
+    setBlockedUserIds(getBlockedUserIds());
     if (data) {
       setEditPickup(data.pickup);
       setEditDropoff(data.dropoff);
@@ -87,6 +92,11 @@ export const RideDetail = () => {
     }
     const msgs = getChatsForRide(rideId);
     setMessages(Array.isArray(msgs) ? msgs : []);
+  };
+
+  const handleUnblockMember = (memberId) => {
+    unblockUser(memberId);
+    setBlockedUserIds(getBlockedUserIds());
   };
 
   useEffect(() => {
@@ -529,11 +539,25 @@ export const RideDetail = () => {
                     </div>
                   </div>
 
-                  {member.isHost && (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-amber-500 text-gray-950">
-                      HOST
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {member.isHost && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-amber-500 text-gray-950">
+                        HOST
+                      </span>
+                    )}
+
+                    {member.id !== user?.id && blockedUserIds.includes(member.id) && (
+                      <button
+                        type="button"
+                        onClick={() => handleUnblockMember(member.id)}
+                        className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-emerald-500 text-red-600 hover:text-white dark:text-red-400 dark:hover:text-white border border-red-500/30 hover:border-emerald-500 text-[10px] font-black flex items-center gap-1 transition-all shadow-sm active:scale-95"
+                        title="Click to Unblock student"
+                      >
+                        <UserCheck className="w-3 h-3 text-emerald-500 hover:text-white" />
+                        <span>Unblock</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

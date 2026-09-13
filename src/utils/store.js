@@ -334,19 +334,82 @@ export const deleteChatMessage = (rideId, messageId) => {
   return chats[rideId];
 };
 
-// ── User Blocking API ───────────────────────────────────────────────────────
-export const blockUser = (userId) => {
+// ── User Blocking & Safety API ──────────────────────────────────────────────
+export const getBlockedUsers = () => {
   initStore();
-  const blocked = JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY) || '[]');
-  if (!blocked.includes(userId)) {
-    blocked.push(userId);
-    localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blocked));
+  try {
+    const raw = JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY) || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.map((item) => {
+      if (typeof item === 'string') {
+        return {
+          id: item,
+          name: 'Blocked Student',
+          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${item}`,
+          reason: 'SOS / Safety Report',
+          blockedAt: null
+        };
+      }
+      return {
+        id: item.id || 'unknown',
+        name: item.name || 'Blocked Student',
+        avatar: item.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${item.id || 'seed'}`,
+        reason: item.reason || 'SOS / Safety Report',
+        blockedAt: item.blockedAt || null
+      };
+    });
+  } catch (e) {
+    console.error('Error reading blocked users:', e);
+    return [];
   }
 };
 
-export const getBlockedUsers = () => {
+export const getBlockedUserIds = () => {
+  return getBlockedUsers().map((u) => u.id);
+};
+
+export const isUserBlocked = (userId) => {
+  if (!userId) return false;
+  return getBlockedUserIds().includes(userId);
+};
+
+export const blockUser = (userOrId, details = {}) => {
   initStore();
-  return JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY) || '[]');
+  const id = typeof userOrId === 'object' && userOrId !== null ? userOrId.id : userOrId;
+  if (!id) return;
+
+  const current = getBlockedUsers();
+  const existsIndex = current.findIndex((u) => u.id === id);
+
+  const newEntry = {
+    id,
+    name: (typeof userOrId === 'object' ? userOrId.name : null) || details.name || 'Blocked Student',
+    avatar: (typeof userOrId === 'object' ? userOrId.avatar : null) || details.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`,
+    reason: details.reason || 'SOS / Safety Report',
+    blockedAt: new Date().toISOString()
+  };
+
+  let updated;
+  if (existsIndex >= 0) {
+    updated = [...current];
+    updated[existsIndex] = { ...updated[existsIndex], ...newEntry };
+  } else {
+    updated = [newEntry, ...current];
+  }
+
+  localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(updated));
+  broadcastUpdate('USER_BLOCKED', { userId: id, user: newEntry });
+  return updated;
+};
+
+export const unblockUser = (userId) => {
+  initStore();
+  if (!userId) return [];
+  const current = getBlockedUsers();
+  const updated = current.filter((u) => u.id !== userId);
+  localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(updated));
+  broadcastUpdate('USER_UNBLOCKED', { userId });
+  return updated;
 };
 
 // ── Real-time Event Subscription helper ─────────────────────────────────────
@@ -354,7 +417,7 @@ export const subscribeToSync = (callback) => {
   subscribers.add(callback);
 
   const storageHandler = (e) => {
-    if ([RIDES_KEY, CHATS_KEY].includes(e.key)) {
+    if ([RIDES_KEY, CHATS_KEY, BLOCKED_USERS_KEY].includes(e.key)) {
       callback({ type: 'STORAGE_CHANGE', key: e.key });
     }
   };

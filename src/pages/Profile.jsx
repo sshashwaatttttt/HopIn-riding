@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { getBlockedUsers, unblockUser, subscribeToSync } from '../utils/store';
 import {
   ShieldCheck,
+  ShieldAlert,
   Star,
   Sparkles,
   LogOut,
@@ -14,7 +16,9 @@ import {
   Save,
   Check,
   RefreshCw,
-  Palette
+  Palette,
+  UserX,
+  UserCheck
 } from 'lucide-react';
 
 // Curated stylish avatar presets
@@ -51,6 +55,25 @@ export const Profile = () => {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Blocked users management state
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [unblockNotice, setUnblockNotice] = useState('');
+
+  useEffect(() => {
+    setBlockedUsers(getBlockedUsers());
+    const unsubscribe = subscribeToSync(() => {
+      setBlockedUsers(getBlockedUsers());
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleUnblock = (targetUserId, targetUserName) => {
+    unblockUser(targetUserId);
+    setBlockedUsers(getBlockedUsers());
+    setUnblockNotice(`${targetUserName || 'Student'} unblocked successfully.`);
+    setTimeout(() => setUnblockNotice(''), 3500);
+  };
 
   if (!user) return null;
 
@@ -345,6 +368,78 @@ export const Profile = () => {
               Verified Student ✓
             </span>
           </div>
+        </div>
+
+        {/* ── Blocked Users / Safety & Privacy Section ───────────────────── */}
+        <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/50 space-y-3 text-left">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-500" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 dark:text-white">
+                {t('blockedUsersTitle')}
+              </h3>
+            </div>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+              blockedUsers.length > 0
+                ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+            }`}>
+              {blockedUsers.length} Blocked
+            </span>
+          </div>
+
+          <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+            {t('blockedUsersDesc')}
+          </p>
+
+          {unblockNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-black flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>{unblockNotice}</span>
+            </div>
+          )}
+
+          {blockedUsers.length === 0 ? (
+            <div className="p-3.5 rounded-xl bg-white/70 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800 text-center flex items-center justify-center gap-2 text-xs text-gray-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{t('noBlockedUsers')}</span>
+            </div>
+          ) : (
+            <div className="space-y-2 pt-1">
+              {blockedUsers.map((bUser) => (
+                <div
+                  key={bUser.id}
+                  className="p-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3 shadow-sm hover:border-red-500/30 transition-all"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img
+                      src={bUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${bUser.id}`}
+                      alt={bUser.name}
+                      className="w-9 h-9 rounded-xl object-cover border border-red-500/30 bg-gray-100 dark:bg-gray-800 shrink-0"
+                    />
+                    <div className="truncate">
+                      <span className="text-xs font-black text-gray-900 dark:text-white block truncate">
+                        {bUser.name}
+                      </span>
+                      <span className="text-[10px] font-bold text-red-500 block truncate">
+                        {bUser.reason || 'SOS / Safety Block'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleUnblock(bUser.id, bUser.name)}
+                    className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-500 text-gray-900 hover:text-white dark:bg-gray-800 dark:hover:bg-emerald-500 dark:text-white text-xs font-extrabold flex items-center gap-1.5 transition-all shrink-0 active:scale-95 border border-gray-200 dark:border-gray-700 hover:border-emerald-500"
+                    title={`Unblock ${bUser.name}`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-500 group-hover:text-white" />
+                    <span>{t('unblockBtn')}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Language Preference */}

@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { getRides, subscribeToSync, getBlockedUsers } from '../utils/store';
+import { getRides, subscribeToSync, getBlockedUserIds } from '../utils/store';
 import { CityStreetAnimation } from '../components/CityStreetAnimation';
 import { RideCard } from '../components/RideCard';
 import { 
   Search, 
   Filter, 
   Sparkles, 
-  ShieldCheck, 
-  PlusCircle, 
-  Car, 
+  Plus, 
+  MapPin, 
+  Calendar, 
+  Clock, 
   Users, 
-  Clock,
-  CheckCircle2
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -28,9 +29,9 @@ export const LiveRideBoard = () => {
 
   const refreshRides = () => {
     const data = getRides();
-    const blocked = getBlockedUsers();
+    const blocked = getBlockedUserIds();
     // Filter out rides from blocked users
-    const clean = data.filter(r => !blocked.includes(r.host.id));
+    const clean = data.filter(r => !blocked.includes(r.host?.id));
     setRides(clean);
   };
 
