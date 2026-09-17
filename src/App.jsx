@@ -35,7 +35,7 @@ const AppRoutes = ({ deferredPrompt, installPWA }) => {
   }
 
   return (
-    <div className="min-h-screen aesthetic-bg text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 relative selection:bg-amber-500/20 selection:text-amber-800 dark:selection:text-amber-200">
+    <div className="min-h-screen aesthetic-bg text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200 relative selection:bg-amber-500/20 selection:text-amber-800 dark:selection:text-amber-200 w-full max-w-[100vw] overflow-x-hidden">
       
       {/* Subtle Aesthetic Ambient Aura */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-72 bg-gradient-to-b from-indigo-500/[0.04] via-amber-500/[0.03] to-transparent pointer-events-none -z-10 blur-3xl" />
