@@ -1,5 +1,4 @@
 export const POPULAR_HUBS = [
-  "HCL IT City Lucknow",
   "BBDU Main Gate",
   "Charbagh Railway Station",
   "Kamta Chauraha Junction",

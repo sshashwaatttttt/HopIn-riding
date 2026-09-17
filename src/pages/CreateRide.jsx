@@ -164,14 +164,14 @@ export const CreateRide = () => {
     const newRide = {
       id: `ride-${Date.now()}`,
       host: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        domain: user.domain,
-        organization: user.organization || (isHcl ? 'HCL Technologies' : 'Verified Campus'),
-        avatar: user.avatar,
-        rating: user.rating || 5.0,
-        gender: user.gender || 'female'
+        id: user?.id || `user-${Date.now()}`,
+        name: user?.name || 'BBD Student',
+        email: user?.email || 'student@bbdu.ac.in',
+        domain: user?.domain || 'bbdu.ac.in',
+        organization: user?.organization || 'BBD Educational Group',
+        avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+        rating: user?.rating || 5.0,
+        gender: user?.gender || 'female'
       },
       direction,
       pickup: pickup.trim(),
@@ -182,10 +182,10 @@ export const CreateRide = () => {
       capacity: parseInt(capacity, 10),
       members: [
         {
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          rating: user.rating || 5.0,
+          id: user?.id || `user-${Date.now()}`,
+          name: user?.name || 'BBD Student',
+          avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+          rating: user?.rating || 5.0,
           isHost: true
         }
       ],
@@ -344,11 +344,7 @@ export const CreateRide = () => {
                       else setDropoff(hub);
                       if (formError) setFormError('');
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors border ${
-                      hub.includes('HCL')
-                        ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 font-bold'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
+                    className="px-2.5 py-1 rounded-lg text-xs transition-colors border bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium"
                   >
                     {hub}
                   </button>

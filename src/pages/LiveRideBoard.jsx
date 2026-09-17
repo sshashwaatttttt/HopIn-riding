@@ -39,8 +39,8 @@ export const LiveRideBoard = () => {
 
   // Determine user's base organization hub
   const userOrgInfo = getDomainOrgInfo(user?.email || user?.domain);
-  const baseHubName = userOrgInfo?.hub || (user?.domain?.includes('hcltech.com') ? 'HCL IT City Lucknow' : 'BBDU Main Gate');
-  const baseCoords = userOrgInfo?.hubCoords || resolveLocationCoords(baseHubName) || { lat: 26.7972, lng: 81.0264 };
+  const baseHubName = userOrgInfo?.hub || 'BBDU Main Gate';
+  const baseCoords = userOrgInfo?.hubCoords || resolveLocationCoords(baseHubName) || { lat: 26.8917, lng: 81.0608 };
 
   // Current effective location (GPS if available, else organization hub)
   const effectiveLocation = userLocation || {
