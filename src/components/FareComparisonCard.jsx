@@ -41,6 +41,7 @@ export const FareComparisonCard = ({
   const [resolvedDropoff, setResolvedDropoff] = useState(null);
   const [showSlider, setShowSlider] = useState(false);
   const [liveWeather, setLiveWeather] = useState(null);
+  const [copiedApp, setCopiedApp] = useState(null);
 
   // Fetch real-time Lucknow weather on mount
   useEffect(() => {
@@ -127,6 +128,20 @@ export const FareComparisonCard = ({
     if (platform === 'ola') return deepLinks.olaApp || deepLinks.olaWeb;
     if (platform === 'rapido') return deepLinks.rapidoApp || deepLinks.rapidoWeb;
     return deepLinks.gmaps;
+  };
+
+  const handleAppClick = (platform) => {
+    if (platform === 'rapido' && deepLinks.dropoffName) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(deepLinks.dropoffName);
+          setCopiedApp('rapido');
+          setTimeout(() => setCopiedApp(null), 4000);
+        }
+      } catch (err) {
+        console.warn('Clipboard copy error:', err);
+      }
+    }
   };
 
   if (!pickup || !dropoff) return null;
@@ -422,6 +437,7 @@ export const FareComparisonCard = ({
             href={getPlatformHref('rapido')}
             target={isMobile ? '_self' : '_blank'}
             rel="noopener noreferrer"
+            onClick={() => handleAppClick('rapido')}
             className="min-h-[44px] px-3 py-2 rounded-xl bg-[#F9D100] hover:bg-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all border border-yellow-500 shadow-md active:scale-95 group text-center no-underline cursor-pointer"
             title={`Open Rapido directly for ${deepLinks.dropoffName}`}
           >
@@ -446,6 +462,16 @@ export const FareComparisonCard = ({
           </a>
 
         </div>
+
+        {/* Rapido Instant Clipboard Notification */}
+        {copiedApp === 'rapido' && (
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>
+              Destination <strong className="underline decoration-amber-500">"{deepLinks.dropoffName}"</strong> copied to clipboard! (If Rapido shows the search bar, simply tap paste)
+            </span>
+          </div>
+        )}
       </div>
 
     </div>
