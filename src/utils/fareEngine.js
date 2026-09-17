@@ -579,43 +579,52 @@ export const getPlatformDeepLinks = (pickup, dropoff) => {
   const cleanPickup = (pickup || "Current Location").trim();
   const cleanDropoff = (dropoff || "BBD University, Lucknow").trim();
 
-  const pickupCoord = resolveLocationCoords(cleanPickup);
-  const dropoffCoord = resolveLocationCoords(cleanDropoff);
+  const pickupCoord = resolveLocationCoords(cleanPickup) || { lat: 26.8917, lng: 81.0608, name: cleanPickup };
+  const dropoffCoord = resolveLocationCoords(cleanDropoff) || { lat: 26.8917, lng: 81.0608, name: cleanDropoff };
 
-  // 1. Uber Universal Link
-  let uberUrl = `https://m.uber.com/ul/?action=setPickup&client_id=hopin_campus`;
-  if (pickupCoord) {
-    uberUrl += `&pickup[latitude]=${pickupCoord.lat}&pickup[longitude]=${pickupCoord.lng}&pickup[formatted_address]=${encodeURIComponent(pickupCoord.name)}`;
-  } else {
-    uberUrl += `&pickup[formatted_address]=${encodeURIComponent(cleanPickup + ", Lucknow")}`;
-  }
+  const pLat = pickupCoord.lat;
+  const pLng = pickupCoord.lng;
+  const pName = pickupCoord.name || cleanPickup;
 
-  if (dropoffCoord) {
-    uberUrl += `&dropoff[latitude]=${dropoffCoord.lat}&dropoff[longitude]=${dropoffCoord.lng}&dropoff[formatted_address]=${encodeURIComponent(dropoffCoord.name)}`;
-  } else {
-    uberUrl += `&dropoff[formatted_address]=${encodeURIComponent(cleanDropoff + ", Lucknow")}`;
-  }
+  const dLat = dropoffCoord.lat;
+  const dLng = dropoffCoord.lng;
+  const dName = dropoffCoord.name || cleanDropoff;
 
-  // 2. Ola Cabs Deep Link
-  let olaUrl = `https://book.olacabs.com/?pickup_name=${encodeURIComponent(cleanPickup)}&drop_name=${encodeURIComponent(cleanDropoff)}`;
-  if (pickupCoord) {
-    olaUrl += `&pickup_lat=${pickupCoord.lat}&pickup_lng=${pickupCoord.lng}`;
-  }
-  if (dropoffCoord) {
-    olaUrl += `&drop_lat=${dropoffCoord.lat}&drop_lng=${dropoffCoord.lng}`;
-  }
+  const isMyLocation = cleanPickup.toLowerCase().includes('current') || cleanPickup.toLowerCase().includes('live');
 
-  // 3. Rapido Web Link
-  const rapidoUrl = `https://www.rapido.bike/`;
+  // 1. Uber: Native App URI Scheme + Universal Web Link
+  const uberAppUrl = isMyLocation
+    ? `uber://?action=setPickup&client_id=hopin_campus&pickup=my_location&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}`
+    : `uber://?action=setPickup&client_id=hopin_campus&pickup[latitude]=${pLat}&pickup[longitude]=${pLng}&pickup[nickname]=${encodeURIComponent(pName)}&pickup[formatted_address]=${encodeURIComponent(pName + ", Lucknow")}&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}`;
 
-  // 4. Google Maps "Ride Services & Transit" Link
-  // Opens Google Maps directly into the Directions / Ride comparison screen
-  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(cleanPickup + ", Lucknow")}&destination=${encodeURIComponent(cleanDropoff + ", Lucknow")}&travelmode=transit`;
+  const uberWebUrl = `https://m.uber.com/ul/?action=setPickup&client_id=hopin_campus&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}&pickup[latitude]=${pLat}&pickup[longitude]=${pLng}&pickup[formatted_address]=${encodeURIComponent(pName + ", Lucknow")}`;
+
+  // 2. Ola Cabs: Native App URI + Android Intent + Universal Web Link
+  const olaAppUrl = `olacabs://app/launch?lat=${pLat}&lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}&drop_name=${encodeURIComponent(dName)}&pickup_name=${encodeURIComponent(pName)}`;
+  const olaAndroidIntent = `intent://book.olacabs.com/?pickup_name=${encodeURIComponent(pName)}&drop_name=${encodeURIComponent(dName)}&pickup_lat=${pLat}&pickup_lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}#Intent;scheme=https;package=com.olacabs.customer;end`;
+  const olaWebUrl = `https://book.olacabs.com/?pickup_name=${encodeURIComponent(pName)}&drop_name=${encodeURIComponent(dName)}&pickup_lat=${pLat}&pickup_lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}`;
+
+  // 3. Rapido Bike & Auto: Native App URI + Android Intent + Web Link
+  const rapidoAppUrl = `rapido://ride?destination=${encodeURIComponent(dName)}&drop_lat=${dLat}&drop_lng=${dLng}&pickup_lat=${pLat}&pickup_lng=${pLng}`;
+  const rapidoAndroidIntent = `intent://ride?destination=${encodeURIComponent(dName)}&drop_lat=${dLat}&drop_lng=${dLng}#Intent;scheme=rapido;package=com.rapido.passenger;end`;
+  const rapidoWebUrl = `https://www.rapido.bike/`;
+
+  // 4. Google Maps "Ride Services": Pre-fills route and shows live Uber/Ola/Rapido booking cards
+  const gmapsWebUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pName + ", Lucknow")}&destination=${encodeURIComponent(dName + ", Lucknow")}&travelmode=rides`;
+  const gmapsAndroidIntent = `intent://maps.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pName + ", Lucknow")}&destination=${encodeURIComponent(dName + ", Lucknow")}&travelmode=rides#Intent;scheme=https;package=com.google.android.apps.maps;end`;
 
   return {
-    uber: uberUrl,
-    ola: olaUrl,
-    rapido: rapidoUrl,
-    gmaps: gmapsUrl
+    uber: uberWebUrl,
+    uberApp: uberAppUrl,
+    ola: olaWebUrl,
+    olaApp: olaAppUrl,
+    olaIntent: olaAndroidIntent,
+    rapido: rapidoWebUrl,
+    rapidoApp: rapidoAppUrl,
+    rapidoIntent: rapidoAndroidIntent,
+    gmaps: gmapsWebUrl,
+    gmapsIntent: gmapsAndroidIntent,
+    pickupName: pName,
+    dropoffName: dName
   };
 };

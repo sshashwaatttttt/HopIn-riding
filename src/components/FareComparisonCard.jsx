@@ -102,6 +102,50 @@ export const FareComparisonCard = ({
     return getPlatformDeepLinks(pickup, dropoff);
   }, [pickup, dropoff]);
 
+  const handleLaunchApp = (e, platform) => {
+    e.preventDefault();
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    if (!isMobile) {
+      // Desktop: Open web link in new tab
+      window.open(deepLinks[platform], '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // Mobile: Try direct native app URI scheme with destination pre-filled
+    if (platform === 'uber') {
+      window.location.href = deepLinks.uberApp;
+      setTimeout(() => {
+        window.location.href = deepLinks.uber;
+      }, 1800);
+    } else if (platform === 'ola') {
+      if (isAndroid && deepLinks.olaIntent) {
+        window.location.href = deepLinks.olaIntent;
+      } else {
+        window.location.href = deepLinks.olaApp;
+      }
+      setTimeout(() => {
+        window.location.href = deepLinks.ola;
+      }, 1800);
+    } else if (platform === 'rapido') {
+      if (isAndroid && deepLinks.rapidoIntent) {
+        window.location.href = deepLinks.rapidoIntent;
+      } else {
+        window.location.href = deepLinks.rapidoApp;
+      }
+      setTimeout(() => {
+        window.location.href = deepLinks.gmaps;
+      }, 1800);
+    } else if (platform === 'gmaps') {
+      if (isAndroid && deepLinks.gmapsIntent) {
+        window.location.href = deepLinks.gmapsIntent;
+      } else {
+        window.location.href = deepLinks.gmaps;
+      }
+    }
+  };
+
   if (!pickup || !dropoff) return null;
 
   const { distanceKm, estMins, isExactGPS, rapido, auto, cab, hopinPool } = estimates;
@@ -347,60 +391,72 @@ export const FareComparisonCard = ({
         </div>
       </div>
 
-      {/* 1-Tap App Deep Link Launchers (Decent & Clean) */}
+      {/* 1-Tap App Deep Link Launchers */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            Check Live Prices in Apps
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+            <span>Direct App Booking & Live Price Check</span>
           </span>
-          <span className="text-[10px] text-slate-400">Pre-fills route</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">
+            Auto-Fills Route
+          </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           
-          {/* Uber - clearly bounded and highlighted */}
-          <a
-            href={deepLinks.uber}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-slate-600 dark:border-slate-600 hover:border-slate-400 shadow-sm active:scale-95"
+          {/* Uber */}
+          <button
+            type="button"
+            onClick={(e) => handleLaunchApp(e, 'uber')}
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-black hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-700 shadow-md active:scale-95 group"
+            title={`Open Uber app directly to ${deepLinks.dropoffName}`}
           >
+            <div className="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center font-black text-[10px] shrink-0">
+              U
+            </div>
             <span>Uber</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-80 shrink-0" />
-          </a>
+            <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
 
           {/* Ola */}
-          <a
-            href={deepLinks.ola}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-slate-200 dark:border-slate-700 shadow-sm active:scale-95"
+          <button
+            type="button"
+            onClick={(e) => handleLaunchApp(e, 'ola')}
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#000000] hover:bg-slate-900 text-[#b5ff00] font-black text-xs flex items-center justify-center gap-2 transition-all border border-[#b5ff00]/40 shadow-md active:scale-95 group"
+            title={`Open Ola app directly to ${deepLinks.dropoffName}`}
           >
+            <div className="w-5 h-5 rounded-md bg-[#b5ff00] text-black flex items-center justify-center font-black text-[10px] shrink-0">
+              O
+            </div>
             <span>Ola</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-          </a>
+            <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
 
           {/* Rapido */}
-          <a
-            href={deepLinks.rapido}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-slate-200 dark:border-slate-700 shadow-sm active:scale-95"
+          <button
+            type="button"
+            onClick={(e) => handleLaunchApp(e, 'rapido')}
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#F9D100] hover:bg-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all border border-yellow-500 shadow-md active:scale-95 group"
+            title={`Open Rapido app directly to ${deepLinks.dropoffName}`}
           >
+            <div className="w-5 h-5 rounded-md bg-slate-950 text-white flex items-center justify-center font-black text-[10px] shrink-0">
+              R
+            </div>
             <span>Rapido</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-          </a>
+            <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
 
-          {/* Maps */}
-          <a
-            href={deepLinks.gmaps}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-slate-200 dark:border-slate-700 shadow-sm active:scale-95"
+          {/* Google Maps */}
+          <button
+            type="button"
+            onClick={(e) => handleLaunchApp(e, 'gmaps')}
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-300 dark:border-slate-700 shadow-sm active:scale-95 group"
+            title={`Open Google Maps ride comparison to ${deepLinks.dropoffName}`}
           >
+            <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
             <span className="truncate">Google Maps</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />
-          </a>
+            <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
 
         </div>
       </div>

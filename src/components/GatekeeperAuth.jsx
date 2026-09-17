@@ -340,17 +340,6 @@ export const GatekeeperAuth = () => {
             )}
           </button>
 
-          {/* Quick 1-Tap Campus Demo Test */}
-          <div className="pt-1 text-center">
-            <button
-              type="button"
-              onClick={signInWithDemoAccount}
-              className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline py-1"
-            >
-              🎓 1-Tap Test as BBD Student
-            </button>
-          </div>
-
           {!loading && (
             <div className="space-y-1 pt-1 text-center">
               <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1.5">
