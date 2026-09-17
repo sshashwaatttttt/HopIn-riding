@@ -24,67 +24,60 @@ export const CityStreetAnimation = () => {
       return;
     }
 
-    // Run a clean, strictly forward-moving physics cycle
-    const runCycle = () => {
+    // Automated loop: Cab arrives, picks up, leaves -> Auto arrives, picks up, leaves -> repeat
+    const runCycle = (currentVehicle = 'car') => {
       if (!active) return;
 
-      // 1. Instantly place vehicle off-screen left (no animation backward)
+      setVehicleType(currentVehicle);
       setNoTransition(true);
       setCarLeft(-30);
       setBrakeLightsOn(false);
       setPhase('approaching');
 
-      // Next tick: enable smooth forward transition into BBD Hub (stop at ~38%)
+      // Next tick: enable smooth forward transition into Hub (stop at ~38%)
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!active) return;
           setNoTransition(false);
-          // Cruising forward, decelerating smoothly to stop at hub
           setCarLeft(38);
         });
       });
 
-      // 2. Approaching stop: brake lights ignite as vehicle comes to rest (at 3.5s)
+      // 1. Approaching stop: brake lights ignite as vehicle comes to rest (at 3.5s)
       const t1 = setTimeout(() => {
         if (!active) return;
         setBrakeLightsOn(true);
         setPhase('stopped-drop');
-      }, 3500);
+      }, 3400);
 
-      // 3. Stopped at Hub: Passengers alighting (drop off) (at 4.5s)
+      // 2. Stopped at Hub: Passenger boarding (at 4.5s)
       const t2 = setTimeout(() => {
         if (!active) return;
-        setPhase('stopped-drop');
-      }, 4200);
-
-      // 4. Stopped at Hub: New Passengers boarding (pick up) (at 7.0s)
-      const t3 = setTimeout(() => {
-        if (!active) return;
         setPhase('stopped-pick');
-      }, 7000);
+      }, 4500);
 
-      // 5. Accelerate forward: release brakes, power forward to exit right (at 9.8s)
-      const t4 = setTimeout(() => {
+      // 3. Accelerate forward: release brakes, power forward to exit right (at 7.2s)
+      const t3 = setTimeout(() => {
         if (!active) return;
         setBrakeLightsOn(false);
         setPhase('accelerating');
         setNoTransition(false);
-        // Drive forward across the screen to 125%
         setCarLeft(125);
-      }, 9800);
+      }, 7200);
 
-      // 6. Complete exit: vehicle is completely off-screen right (at 14.0s)
-      // Repeat cycle without ANY backward transition
-      const t5 = setTimeout(() => {
+      // 4. Vehicle completely exited off screen right (at 10.8s)
+      // Switch vehicle: Cab -> Auto -> Cab on seamless infinite loop!
+      const t4 = setTimeout(() => {
         if (!active) return;
         setPhase('exited');
-        runCycle();
-      }, 14200);
+        const nextVehicle = currentVehicle === 'car' ? 'auto' : 'car';
+        runCycle(nextVehicle);
+      }, 11000);
 
-      loopTimeoutRef.current = [t1, t2, t3, t4, t5];
+      loopTimeoutRef.current = [t1, t2, t3, t4];
     };
 
-    runCycle();
+    runCycle('car');
 
     return () => {
       active = false;
@@ -92,7 +85,7 @@ export const CityStreetAnimation = () => {
         loopTimeoutRef.current.forEach(clearTimeout);
       }
     };
-  }, [vehicleType]);
+  }, []);
 
   const isDriving = phase === 'approaching' || phase === 'accelerating';
   const isStopped = phase === 'stopped-drop' || phase === 'stopped-pick';
@@ -101,32 +94,10 @@ export const CityStreetAnimation = () => {
   return (
     <div className="relative w-full h-52 sm:h-60 overflow-hidden rounded-3xl bg-gradient-to-b from-[#080d1a] via-[#0f172a] to-[#0a0e1a] border border-amber-500/20 shadow-2xl group select-none">
       
-      {/* ── Vehicle Type Switcher Toggle (Top Right) ─────────────────────── */}
-      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 p-1 rounded-2xl bg-gray-900/80 backdrop-blur-md border border-gray-700/60 shadow-lg">
-        <button
-          type="button"
-          onClick={() => setVehicleType('car')}
-          className={`px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 transition-all ${
-            vehicleType === 'car'
-              ? 'bg-amber-500 text-gray-950 shadow-md scale-102'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Car className="w-3.5 h-3.5" />
-          <span>City Taxi Cab</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setVehicleType('auto')}
-          className={`px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 transition-all ${
-            vehicleType === 'auto'
-              ? 'bg-amber-500 text-gray-950 shadow-md scale-102'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <span>🛺</span>
-          <span>BBD E-Rickshaw</span>
-        </button>
+      {/* Active Vehicle Indicator Badge (Top Right) */}
+      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gray-900/80 backdrop-blur-md border border-gray-700/60 shadow-lg text-xs font-black text-amber-400">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>{vehicleType === 'car' ? '🚕 City Taxi Cab' : '🛺 Auto Rickshaw'}</span>
       </div>
 
       {/* ── Night Sky, Stars & Distant Lucknow Skyline ────────────────────── */}
@@ -157,10 +128,10 @@ export const CityStreetAnimation = () => {
           opacity="0.85"
         />
 
-        {/* BBD Architectural Dome Accent */}
+        {/* Architectural Dome Accent */}
         <path d="M 470 85 Q 520 45 570 85" fill="none" stroke="#F59E0B" strokeWidth="2" strokeDasharray="4 4" opacity="0.45" />
         <text x="520" y="40" fill="#F59E0B" fontSize="10" fontWeight="900" textAnchor="middle" opacity="0.85" letterSpacing="2">
-          BBD UNIVERSITY • TRANSIT CORRIDOR
+          COMMUNITY MOBILITY • TRANSIT CORRIDOR
         </text>
 
         {/* Trees */}
@@ -185,12 +156,12 @@ export const CityStreetAnimation = () => {
         <div className="w-1.5 h-16 bg-gradient-to-r from-gray-600 via-gray-400 to-gray-700 shadow-lg -mt-36"></div>
       </div>
 
-      {/* ── BBD Transit Shelter & Platform Hub ─────────────────────────────── */}
+      {/* ── Community Transit Shelter & Platform Hub ─────────────────────────────── */}
       <div className="absolute bottom-12 left-[36%] sm:left-[40%] z-15 flex flex-col items-center pointer-events-none">
         <div className="px-3.5 py-1 rounded-t-xl bg-cyan-950/70 border-t-2 border-x-2 border-cyan-400/40 backdrop-blur-md shadow-lg flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span className="text-[10px] font-black text-cyan-300 tracking-wider">
-            BBD PICKUP HUB
+            HOP-IN PICKUP HUB
           </span>
         </div>
         <div className="w-28 h-1.5 bg-gradient-to-r from-cyan-400/40 via-amber-400/50 to-cyan-400/40 rounded-full"></div>

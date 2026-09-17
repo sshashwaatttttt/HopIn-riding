@@ -24,6 +24,7 @@ import { getFirestore } from 'firebase/firestore';
 import {
   getAuth,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -31,7 +32,7 @@ import {
   signOut
 } from 'firebase/auth';
 
-// Firebase project config for HopIn BBD
+// Firebase project config for HopIn
 const firebaseConfig = {
   apiKey: "AIzaSyB5Aivr3c2Nca3tqEX3tid33vi6UHx6GYw",
   authDomain: "hopin-bbd.firebaseapp.com",
@@ -51,14 +52,23 @@ let auth = null;
 let db = null;
 let analytics = null;
 let googleProvider = null;
+let microsoftProvider = null;
 
 if (isFirebaseConfigured()) {
   // Avoid duplicate initialization in hot-reload environments
   app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  
+  // Google Auth Provider
   googleProvider = new GoogleAuthProvider();
   googleProvider.setCustomParameters({
+    prompt: 'select_account'
+  });
+
+  // Microsoft Outlook OAuth Provider
+  microsoftProvider = new OAuthProvider('microsoft.com');
+  microsoftProvider.setCustomParameters({
     prompt: 'select_account'
   });
 
@@ -76,6 +86,7 @@ export {
   db,
   analytics,
   googleProvider,
+  microsoftProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,

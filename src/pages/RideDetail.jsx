@@ -21,6 +21,7 @@ import {
 } from '../utils/store';
 import { SOSModal } from '../components/SOSModal';
 import { RatingModal } from '../components/RatingModal';
+import { FareComparisonCard } from '../components/FareComparisonCard';
 import { 
   ArrowLeft, 
   Star, 
@@ -142,6 +143,10 @@ export const RideDetail = () => {
     (p.email && user?.email && p.email.toLowerCase() === user.email.toLowerCase())
   );
 
+  const justCreated = searchParams.get('created') === 'true';
+  const justBooked = searchParams.get('booked') === 'true';
+  const isBookedOrCreated = isHost || isMember || isPending || justCreated || justBooked;
+
   // ── Host Actions ──
   const handleRespond = (userId, accept) => {
     const updated = respondJoinRequest(ride.id, userId, accept);
@@ -151,6 +156,7 @@ export const RideDetail = () => {
   const handleJoinRequest = () => {
     const updated = requestJoinRide(ride.id, user);
     setRide(updated);
+    setSearchParams({ booked: 'true' });
   };
 
   const handleLeaveSlot = () => {
@@ -323,7 +329,7 @@ export const RideDetail = () => {
       </div>
 
       {/* ── Slide Shuffle Switcher (Slot Details ⟷ Live Chat) ── */}
-      <div className="bg-gray-200/80 dark:bg-gray-800/80 p-1.5 rounded-2xl flex items-center gap-1 border border-gray-300 dark:border-gray-700/60 shadow-inner">
+      <div className="bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-300/80 dark:border-slate-700/60 shadow-inner">
         <button
           onClick={() => {
             setActiveSlide('details');
@@ -331,8 +337,8 @@ export const RideDetail = () => {
           }}
           className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             activeSlide === 'details'
-              ? 'bg-amber-500 text-gray-950 shadow-md scale-[1.01]'
-              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+              ? 'bg-amber-500 text-slate-950 shadow-sm scale-[1.01]'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -350,10 +356,10 @@ export const RideDetail = () => {
           }}
           className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
             activeSlide === 'chat'
-              ? 'bg-amber-500 text-gray-950 shadow-md scale-[1.01]'
+              ? 'bg-amber-500 text-slate-950 shadow-sm scale-[1.01]'
               : isMember
-                ? 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                : 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
+                ? 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                : 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
           }`}
         >
           {isMember ? (
@@ -377,8 +383,33 @@ export const RideDetail = () => {
       {/* SLIDE 1: SLOT DETAILS & HOST MANAGEMENT                              */}
       {/* ═════════════════════════════════════════════════════════════════════ */}
       {activeSlide === 'details' && (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 border border-gray-200 dark:border-gray-800 shadow-2xl space-y-6 animate-in fade-in duration-200">
+        <div className="aesthetic-card rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 border border-slate-200/80 dark:border-slate-800/80 animate-in fade-in duration-200">
           
+          {/* Post-Creation & Post-Booking Notification Banners */}
+          {justCreated && (
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider">🎉 Ride Slot Created Successfully!</p>
+                <p className="text-xs font-medium mt-0.5 opacity-90 leading-relaxed">
+                  Your ride slot is now live. Your route's estimated prices, co-rider split, and 1-tap app booking links (Uber, Ola, Rapido, Google Maps) have been unlocked below!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {justBooked && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-amber-500 mt-0.5" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider">✅ Slot Booking Requested!</p>
+                <p className="text-xs font-medium mt-0.5 opacity-90 leading-relaxed">
+                  You have booked this ride slot! Your route's dynamic fare split and 1-tap booking URLs (Uber, Ola, Rapido, Google Maps) are unlocked below.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Host Action Bar inside Card */}
           {isHost && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
@@ -528,6 +559,55 @@ export const RideDetail = () => {
                   {new Date(ride.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Live Fare Estimation & App Launcher: Appears after slot booking or creation */}
+          {isBookedOrCreated ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Estimated Route Fares & 1-Tap Booking Apps</span>
+                </span>
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Unlocked for Booked Squad
+                </span>
+              </div>
+
+              <FareComparisonCard
+                pickup={ride.pickup}
+                dropoff={ride.dropoff}
+                capacity={ride.capacity || 3}
+                departureTime={ride.departureTime}
+                onSelectEstimatedFare={isHost ? (fare) => {
+                  updateRide(ride.id, { estimatedFare: fare });
+                  fetchRideAndChat();
+                } : undefined}
+              />
+            </div>
+          ) : (
+            /* Locked Preview: Appears before slot booking */
+            <div className="p-5 rounded-2xl aesthetic-card border border-slate-200/80 dark:border-slate-800/80 text-center space-y-3 shadow-sm">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                  Estimated Prices & Booking URLs Locked
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                  Book or join this ride slot to reveal the exact dynamic fare split and unlock 1-tap booking URLs for Uber, Ola, Rapido, and Google Maps.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleJoinRequest}
+                disabled={(ride.members || []).length >= ride.capacity}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:brightness-105 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {(ride.members || []).length >= ride.capacity ? 'Ride Slot Full' : 'Book This Slot to Unlock Fares 🛺'}
+              </button>
             </div>
           )}
 
@@ -723,21 +803,21 @@ export const RideDetail = () => {
         <div className="flex flex-col h-[calc(100vh-13rem)] animate-in fade-in duration-200">
           
           {/* Top Chat Sub-Header with Back-to-Details Shuffle */}
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl p-3.5 border border-gray-200 dark:border-gray-800 shadow-md flex items-center justify-between shrink-0">
+          <div className="aesthetic-card rounded-t-3xl p-3.5 border border-slate-200/80 dark:border-slate-800/80 shadow-md flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => {
                   setActiveSlide('details');
                   setSearchParams({});
                 }}
-                className="px-2.5 py-1 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-amber-500/20 text-gray-700 dark:text-gray-300 text-xs font-black flex items-center gap-1 transition-all"
+                className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 text-xs font-black flex items-center gap-1 transition-all"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Slot Details</span>
               </button>
               
               <div>
-                <h3 className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-1">
+                <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1">
                   <span>{ride.pickup} ➔ {ride.dropoff}</span>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 </h3>
@@ -779,8 +859,8 @@ export const RideDetail = () => {
           </div>
 
           {/* Messages Feed */}
-          <div className="flex-1 bg-gray-50/50 dark:bg-gray-950/50 p-4 overflow-y-auto space-y-3.5 border-x border-gray-200 dark:border-gray-800">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center text-[11px] font-bold text-amber-600 dark:text-amber-400 max-w-sm mx-auto">
+          <div className="flex-1 aesthetic-bg p-4 overflow-y-auto space-y-3.5 border-x border-slate-200/80 dark:border-slate-800/80">
+            <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center text-[11px] font-bold text-amber-700 dark:text-amber-400 max-w-sm mx-auto">
               <span>🛺 Real-time Squad Chat. Share exact GPS pin below!</span>
             </div>
 
@@ -801,11 +881,11 @@ export const RideDetail = () => {
 
                   <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                     <div className="flex items-center gap-1.5 px-1 mb-0.5">
-                      <span className="text-[10px] font-extrabold text-gray-400">
+                      <span className="text-[10px] font-extrabold text-slate-400">
                         {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {msg.edited && (
-                        <span className="text-[9px] font-bold text-gray-400 italic">(edited)</span>
+                        <span className="text-[9px] font-bold text-slate-400 italic">(edited)</span>
                       )}
                     </div>
 
@@ -815,7 +895,7 @@ export const RideDetail = () => {
                           type="text"
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 outline-none"
+                          className="w-full px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 outline-none"
                           autoFocus
                         />
                         <div className="flex items-center gap-1.5 justify-end">
@@ -831,7 +911,7 @@ export const RideDetail = () => {
                               setEditingMsgId(null);
                               setEditText('');
                             }}
-                            className="px-2 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold flex items-center gap-1"
+                            className="px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold flex items-center gap-1"
                           >
                             <X className="w-3 h-3" />
                             <span>Cancel</span>
@@ -842,8 +922,8 @@ export const RideDetail = () => {
                       <div className="relative">
                         <div className={`p-3 rounded-2xl text-xs font-medium shadow-sm ${
                           isMe
-                            ? 'bg-amber-500 text-gray-950 rounded-tr-none font-bold'
-                            : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 rounded-tl-none'
+                            ? 'bg-amber-500 text-slate-950 rounded-tr-none font-bold'
+                            : 'aesthetic-card text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700/70 rounded-tl-none'
                         }`}>
                           {msg.isLocation ? (
                             <a
@@ -854,7 +934,7 @@ export const RideDetail = () => {
                               }
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-blue-800 dark:text-blue-300 font-black underline hover:opacity-80"
+                              className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-black underline hover:opacity-80"
                             >
                               <MapPin className="w-4 h-4 text-red-500 shrink-0" />
                               <span>{msg.text}</span>
@@ -869,7 +949,7 @@ export const RideDetail = () => {
                             {!msg.isLocation && (
                               <button
                                 onClick={() => handleStartEdit(msg)}
-                                className="p-1 rounded-md text-gray-400 hover:text-amber-500"
+                                className="p-1 rounded-md text-slate-400 hover:text-amber-500"
                                 title="Edit message"
                               >
                                 <Pencil className="w-3 h-3" />
@@ -877,7 +957,7 @@ export const RideDetail = () => {
                             )}
                             <button
                               onClick={() => handleDeleteMsg(msg.id)}
-                              className="p-1 rounded-md text-gray-400 hover:text-red-500"
+                              className="p-1 rounded-md text-slate-400 hover:text-red-500"
                               title="Delete message"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -894,13 +974,13 @@ export const RideDetail = () => {
           </div>
 
           {/* Quick Replies & Message Input */}
-          <div className="bg-white dark:bg-gray-900 rounded-b-3xl p-3 border border-gray-200 dark:border-gray-800 shadow-xl space-y-2.5 shrink-0">
+          <div className="aesthetic-card rounded-b-3xl p-3 border border-slate-200/80 dark:border-slate-800/80 shadow-xl space-y-2.5 shrink-0">
             <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
               {quickReplies.map((chip, idx) => (
                 <button
                   key={idx}
                   onClick={() => sendMessage(chip)}
-                  className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-amber-500/20 text-gray-700 dark:text-gray-300 text-[10px] font-extrabold whitespace-nowrap border border-gray-200 dark:border-gray-700 transition-all shrink-0 active:scale-95"
+                  className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold whitespace-nowrap border border-slate-200 dark:border-slate-700 transition-all shrink-0 active:scale-95"
                 >
                   {chip}
                 </button>

@@ -189,21 +189,21 @@ export const SquadChat = () => {
     <div className="max-w-3xl mx-auto py-2 flex flex-col h-[calc(100vh-5rem)]">
       
       {/* Top Chat Header */}
-      <div className="bg-white dark:bg-gray-900 rounded-t-3xl p-4 border border-gray-200 dark:border-gray-800 shadow-lg flex items-center justify-between z-10 shrink-0">
+      <div className="aesthetic-card rounded-t-3xl p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-lg flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/ride/${rideId}`)}
-            className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           
           <div>
-            <h2 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-1.5">
+            <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
               <span>{ride.pickup} ➔ {ride.dropoff}</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </h2>
-            <p className="text-[11px] font-bold text-gray-400">
+            <p className="text-[11px] font-bold text-slate-400">
               {ride.members.length} Squad Members Online
             </p>
           </div>
@@ -248,10 +248,10 @@ export const SquadChat = () => {
       </div>
 
       {/* Chat Messages Feed Area */}
-      <div className="flex-1 bg-gray-50/50 dark:bg-gray-950/50 p-4 overflow-y-auto space-y-3.5 border-x border-gray-200 dark:border-gray-800">
+      <div className="flex-1 aesthetic-bg p-4 overflow-y-auto space-y-3.5 border-x border-slate-200/80 dark:border-slate-800/80">
         
         {/* Ride Info Pin */}
-        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center text-xs font-bold text-amber-600 dark:text-amber-400 max-w-md mx-auto">
+        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center text-xs font-bold text-amber-700 dark:text-amber-400 max-w-md mx-auto">
           <span>🛺 Live Squad Coordination Active. Send exact GPS pin below!</span>
         </div>
 
@@ -272,11 +272,11 @@ export const SquadChat = () => {
 
               <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-center gap-1.5 px-1 mb-0.5">
-                  <span className="text-[10px] font-extrabold text-gray-400">
+                  <span className="text-[10px] font-extrabold text-slate-400">
                     {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   {msg.edited && (
-                    <span className="text-[9px] font-bold text-gray-400 italic">
+                    <span className="text-[9px] font-bold text-slate-400 italic">
                       (edited)
                     </span>
                   )}
@@ -289,7 +289,7 @@ export const SquadChat = () => {
                       type="text"
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 outline-none"
+                      className="w-full px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 outline-none"
                       autoFocus
                     />
                     <div className="flex items-center gap-1.5 justify-end">
@@ -302,7 +302,7 @@ export const SquadChat = () => {
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="px-2 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold flex items-center gap-1"
+                        className="px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold flex items-center gap-1"
                       >
                         <X className="w-3 h-3" />
                         <span>Cancel</span>
@@ -313,8 +313,8 @@ export const SquadChat = () => {
                   <div className="relative">
                     <div className={`p-3 rounded-2xl text-xs font-medium shadow-sm ${
                       isMe
-                        ? 'bg-amber-500 text-gray-950 rounded-tr-none font-bold'
-                        : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 rounded-tl-none'
+                        ? 'bg-amber-500 text-slate-950 rounded-tr-none font-bold'
+                        : 'aesthetic-card text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700/70 rounded-tl-none'
                     }`}>
                       {msg.isLocation ? (
                         <a
@@ -325,7 +325,7 @@ export const SquadChat = () => {
                           }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-blue-800 dark:text-blue-300 font-black underline hover:opacity-80"
+                          className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 font-black underline hover:opacity-80"
                         >
                           <MapPin className="w-4 h-4 text-red-500 shrink-0" />
                           <span>{msg.text}</span>
@@ -341,7 +341,7 @@ export const SquadChat = () => {
                         {!msg.isLocation && (
                           <button
                             onClick={() => handleStartEdit(msg)}
-                            className="p-1 rounded-md text-gray-400 hover:text-amber-500 hover:bg-gray-200 dark:hover:bg-gray-800"
+                            className="p-1 rounded-md text-slate-400 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800"
                             title="Edit message"
                           >
                             <Pencil className="w-3 h-3" />
@@ -349,7 +349,7 @@ export const SquadChat = () => {
                         )}
                         <button
                           onClick={() => handleDeleteMessage(msg.id)}
-                          className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-800"
+                          className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800"
                           title="Delete message"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -366,7 +366,7 @@ export const SquadChat = () => {
       </div>
 
       {/* Quick Reply Chips & Message Input */}
-      <div className="bg-white dark:bg-gray-900 rounded-b-3xl p-3 md:p-4 border border-gray-200 dark:border-gray-800 shadow-xl space-y-3 shrink-0">
+      <div className="aesthetic-card rounded-b-3xl p-3 md:p-4 border border-slate-200/80 dark:border-slate-800/80 shadow-xl space-y-3 shrink-0">
         
         {/* Quick Reply Chips */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -374,7 +374,7 @@ export const SquadChat = () => {
             <button
               key={idx}
               onClick={() => sendMessage(chip)}
-              className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-amber-500/20 text-gray-700 dark:text-gray-300 text-[11px] font-extrabold whitespace-nowrap border border-gray-200 dark:border-gray-700 transition-all shrink-0 active:scale-95"
+              className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 text-[11px] font-extrabold whitespace-nowrap border border-slate-200 dark:border-slate-700 transition-all shrink-0 active:scale-95"
             >
               {chip}
             </button>

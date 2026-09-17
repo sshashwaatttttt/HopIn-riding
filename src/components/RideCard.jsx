@@ -48,6 +48,7 @@ export const RideCard = ({ ride, onUpdate }) => {
     const updated = requestJoinRide(ride.id, user);
     setRequested(true);
     if (onUpdate) onUpdate(updated);
+    navigate(`/ride/${ride.id}?booked=true`);
   };
 
   const handleLeaveSlot = (e) => {
@@ -74,10 +75,10 @@ export const RideCard = ({ ride, onUpdate }) => {
   };
 
   return (
-    <div className="relative group bg-white dark:bg-gray-900 rounded-3xl p-5 md:p-6 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
+    <div className="relative group aesthetic-card rounded-3xl p-5 md:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden">
       
       {/* Accent Header Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 to-yellow-400"></div>
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400"></div>
 
       <div>
         {/* Top Meta: Host & Badges */}
@@ -86,15 +87,15 @@ export const RideCard = ({ ride, onUpdate }) => {
             <img
               src={ride?.host?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${ride?.id || 'host'}`}
               alt={ride?.host?.name || 'Host'}
-              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500 shadow-md bg-gray-100 dark:bg-gray-800"
+              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500 shadow-sm bg-slate-100 dark:bg-slate-800"
             />
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight">
+                <span className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
                   {ride?.host?.name || 'Student Host'}
                 </span>
                 {isHost && (
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase">
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 uppercase">
                     HOST
                   </span>
                 )}
@@ -105,7 +106,7 @@ export const RideCard = ({ ride, onUpdate }) => {
                   <Star className="w-3.5 h-3.5 fill-current mr-0.5" />
                   {ride?.host?.rating || 5.0}
                 </span>
-                <span className="text-[11px] font-semibold text-gray-400">
+                <span className="text-[11px] font-semibold text-slate-400">
                   • {ride?.host?.domain || 'BBD Student'}
                 </span>
               </div>
@@ -114,7 +115,7 @@ export const RideCard = ({ ride, onUpdate }) => {
 
           {/* Badges */}
           <div className="flex flex-col items-end gap-1">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               <Clock className="w-3 h-3 text-amber-500" />
               <span>{timeLeft}</span>
             </span>
@@ -122,15 +123,15 @@ export const RideCard = ({ ride, onUpdate }) => {
         </div>
 
         {/* Route Details */}
-        <div className="my-4 p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50">
-          <div className="flex items-center justify-between text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">
+        <div className="my-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80">
+          <div className="flex items-center justify-between text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
             <span>{ride.direction === 'toCampus' ? t('toCampus') : t('fromCampus')}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] uppercase font-bold text-gray-400 block">From</span>
-              <span className="text-sm font-extrabold text-gray-900 dark:text-white truncate block">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">From</span>
+              <span className="text-sm font-extrabold text-slate-900 dark:text-white truncate block">
                 {ride.pickup}
               </span>
             </div>
@@ -138,8 +139,8 @@ export const RideCard = ({ ride, onUpdate }) => {
             <ArrowRight className="w-4 h-4 text-amber-500 shrink-0 mx-1" />
 
             <div className="flex-1 min-w-0 text-right">
-              <span className="text-[10px] uppercase font-bold text-gray-400 block">To</span>
-              <span className="text-sm font-extrabold text-gray-900 dark:text-white truncate block">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">To</span>
+              <span className="text-sm font-extrabold text-slate-900 dark:text-white truncate block">
                 {ride.dropoff}
               </span>
             </div>
@@ -150,7 +151,7 @@ export const RideCard = ({ ride, onUpdate }) => {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-extrabold text-gray-700 dark:text-gray-300">
+            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
               {ride.members.length}/{ride.capacity} {t('seatsAvailable')}
             </span>
           </div>
@@ -161,7 +162,7 @@ export const RideCard = ({ ride, onUpdate }) => {
                 key={m.id}
                 src={m.avatar}
                 alt={m.name}
-                className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-gray-900 object-cover"
+                className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-[#0b0f19] object-cover"
                 title={`${m.name} (${m.rating} ⭐)`}
               />
             ))}
@@ -175,7 +176,7 @@ export const RideCard = ({ ride, onUpdate }) => {
           isHost ? (
             <Link
               to={`/ride/${ride.id}`}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all"
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-105 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all"
             >
               <span>Manage Slot & Details 👑</span>
               <ArrowRight className="w-4 h-4" />
@@ -184,7 +185,7 @@ export const RideCard = ({ ride, onUpdate }) => {
             <div className="flex items-center gap-2">
               <Link
                 to={`/ride/${ride.id}`}
-                className="flex-1 py-3.5 px-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-1 py-3.5 px-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-105 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 transition-all"
               >
                 <span>View Slot 📋</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -202,14 +203,14 @@ export const RideCard = ({ ride, onUpdate }) => {
           )
         ) : isPending || requested ? (
           <div className="flex items-center gap-2">
-            <div className="flex-1 py-3 px-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 animate-spin shrink-0" />
+            <div className="flex-1 py-3 px-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 animate-spin shrink-0 text-amber-500" />
               <span className="truncate">Pending Approval ⏳</span>
             </div>
             <button
               type="button"
               onClick={handleCancelRequest}
-              className="py-3 px-3 rounded-2xl bg-gray-100 hover:bg-red-500/20 dark:bg-gray-800 dark:hover:bg-red-500/20 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 font-bold text-xs uppercase transition-all shrink-0"
+              className="py-3 px-3 rounded-2xl bg-slate-100 hover:bg-red-500/20 dark:bg-slate-800 dark:hover:bg-red-500/20 text-slate-600 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 border border-slate-200 dark:border-slate-700 font-bold text-xs uppercase transition-all shrink-0"
               title="Cancel join request"
             >
               <span>Cancel ✕</span>
@@ -218,14 +219,14 @@ export const RideCard = ({ ride, onUpdate }) => {
         ) : isFull ? (
           <button
             disabled
-            className="w-full py-3 px-4 rounded-2xl bg-gray-200 dark:bg-gray-800 text-gray-400 font-bold text-xs uppercase tracking-wider cursor-not-allowed"
+            className="w-full py-3 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-bold text-xs uppercase tracking-wider cursor-not-allowed"
           >
             Squad Full 🚫
           </button>
         ) : (
           <button
             onClick={handleJoin}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-gray-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-98"
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-105 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all transform active:scale-98"
           >
             <span>{t('enrollSquad')}</span>
           </button>

@@ -14,15 +14,49 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
-const ALLOWED_COLLEGE_DOMAINS = ['bbdu.ac.in', 'bbdniit.ac.in', 'bbdnitm.ac.in'];
+// Verified College Domains (BBD Institutions)
+export const ALLOWED_COLLEGE_DOMAINS = [
+  {
+    domain: 'bbdu.ac.in',
+    org: 'BBD University',
+    category: 'University Campus',
+    hub: 'BBDU Main Gate',
+    hubCoords: { lat: 26.8906, lng: 81.0592 }
+  },
+  {
+    domain: 'bbdniit.ac.in',
+    org: 'BBD NIIT',
+    category: 'Engineering & Tech Campus',
+    hub: 'BBDU Main Gate',
+    hubCoords: { lat: 26.8906, lng: 81.0592 }
+  },
+  {
+    domain: 'bbdnitm.ac.in',
+    org: 'BBD NITM',
+    category: 'Management & Tech Campus',
+    hub: 'BBDU Main Gate',
+    hubCoords: { lat: 26.8906, lng: 81.0592 }
+  }
+];
+
+export const ALLOWED_DOMAINS = ALLOWED_COLLEGE_DOMAINS;
 
 export const isCollegeDomain = (email) => {
   if (!email || typeof email !== 'string' || !email.includes('@')) return false;
   const domain = email.split('@')[1]?.toLowerCase().trim();
   if (!domain) return false;
   return ALLOWED_COLLEGE_DOMAINS.some(
-    (allowed) => domain === allowed || domain.endsWith('.' + allowed)
+    (item) => domain === item.domain || domain.endsWith('.' + item.domain)
   );
+};
+
+export const isAllowedDomain = isCollegeDomain;
+
+export const getDomainOrgInfo = (emailOrDomain) => {
+  if (!emailOrDomain) return null;
+  const clean = emailOrDomain.replace(/^@/, '').toLowerCase().trim();
+  const domain = clean.includes('@') ? clean.split('@')[1] : clean;
+  return ALLOWED_COLLEGE_DOMAINS.find(item => domain === item.domain || domain?.endsWith('.' + item.domain)) || null;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -51,7 +85,6 @@ export const AuthProvider = ({ children }) => {
 
   // Helper to fetch user profile from Firestore or local fallback
   const fetchUserProfile = async (uid, email) => {
-    // 1. Try Firestore
     if (db) {
       try {
         const userDocRef = doc(db, 'users', uid);
@@ -64,13 +97,11 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // 2. Try localStorage by UID
     try {
       const saved = localStorage.getItem(`hopin_user_${uid}`);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
 
-    // 3. Try active local session if email matches
     try {
       const active = JSON.parse(localStorage.getItem('hopin_real_user_v2') || 'null');
       if (active && (active.id === uid || active.email?.toLowerCase() === email?.toLowerCase())) {
@@ -81,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
-  // Helper to process authenticated Google user
+  // Process authenticated Google user
   const processAuthenticatedUser = async (fbUser) => {
     const email = (fbUser.email || '').toLowerCase().trim();
 
@@ -93,7 +124,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       setPendingGoogleUser(null);
       setNeedsProfile(false);
-      const err = `Access Restricted: "${email}" is not a recognized BBD college Google account. Only @bbdu.ac.in, @bbdniit.ac.in, or @bbdnitm.ac.in accounts are permitted.`;
+      const err = `Access Restricted: "${email}" is not a recognized BBD college Google account. Only @bbdu.ac.in, @bbdniit.ac.in, or @bbdnitm.ac.in student accounts are permitted.`;
       setAuthError(err);
       return {
         success: false,
@@ -103,11 +134,10 @@ export const AuthProvider = ({ children }) => {
       };
     }
 
-    // Check if user has already registered in the past
+    // Check if user has registered previously
     const existingProfile = await fetchUserProfile(fbUser.uid, email);
 
     if (existingProfile) {
-      // Returning user: Log in directly without asking for profile setup again
       setUser(existingProfile);
       setNeedsProfile(false);
       setPendingGoogleUser(null);
@@ -116,14 +146,16 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return { success: true, isNewUser: false, user: existingProfile };
     } else {
-      // New user: Trigger profile creation step
       const domain = '@' + email.split('@')[1];
+      const orgInfo = getDomainOrgInfo(email);
       const pendingData = {
         uid: fbUser.uid,
         email,
         displayName: fbUser.displayName || email.split('@')[0],
         photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-        domain
+        domain,
+        organization: orgInfo ? orgInfo.org : 'BBD University',
+        hub: 'BBDU Main Gate'
       };
       setPendingGoogleUser(pendingData);
       setNeedsProfile(true);
@@ -132,11 +164,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ── Firebase auth state listener & redirect result handler ────────────────
+  // Listen for redirect results and auth state changes
   useEffect(() => {
     if (!isFirebaseConfigured() || !auth) return;
 
-    // Check if coming back from signInWithRedirect
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
@@ -147,7 +178,6 @@ export const AuthProvider = ({ children }) => {
         console.error('getRedirectResult error:', err);
       });
 
-    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       try {
         if (fbUser) {
@@ -159,7 +189,6 @@ export const AuthProvider = ({ children }) => {
             return;
           }
 
-          // If no user is loaded in state yet, check if profile exists
           if (!user) {
             const profile = await fetchUserProfile(fbUser.uid, email);
             if (profile) {
@@ -167,12 +196,15 @@ export const AuthProvider = ({ children }) => {
               setNeedsProfile(false);
             } else {
               const domain = '@' + email.split('@')[1];
+              const orgInfo = getDomainOrgInfo(email);
               setPendingGoogleUser({
                 uid: fbUser.uid,
                 email,
                 displayName: fbUser.displayName || email.split('@')[0],
                 photoURL: fbUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-                domain
+                domain,
+                organization: orgInfo ? orgInfo.org : 'BBD University',
+                hub: 'BBDU Main Gate'
               });
               setNeedsProfile(true);
             }
@@ -181,7 +213,6 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error('onAuthStateChanged error:', err);
       } finally {
-        // Critical UX fix: Ensure loading state is released when auth state changes resolve
         setLoading(false);
       }
     });
@@ -189,7 +220,7 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, [user]);
 
-  // ── Sign in with Google (forces account picker with bounded timeout) ───────
+  // Sign in with Google
   const signInWithGoogle = async () => {
     if (!isFirebaseConfigured() || !auth || !googleProvider) {
       return { success: false, message: 'Firebase authentication is not ready.' };
@@ -198,11 +229,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setAuthError('');
 
-    // Bounded timeout (12s) to prevent permanent button hang in embedded browsers or stalled popups
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
       timeoutId = setTimeout(() => {
-        const timeoutErr = new Error('Sign-in window took too long to respond. Please check if a Google popup was blocked, or tap Retry.');
+        const timeoutErr = new Error('Google sign-in window took too long to respond. Please check if a popup was blocked, or tap Retry.');
         timeoutErr.code = 'auth/timeout';
         reject(timeoutErr);
       }, 12000);
@@ -218,7 +248,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Google sign-in error:', err);
 
       if (err.code === 'auth/popup-blocked') {
-        // Fallback to redirect on devices where popups are blocked
         try {
           await signInWithRedirect(auth, googleProvider);
           return { success: true, redirecting: true };
@@ -248,30 +277,57 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ── Complete Profile Registration (for New Users) ─────────────────────────
-  const completeGoogleProfile = async ({ fullName, gender = 'female', phone = '', branch = '', customAvatar = null }) => {
+  // 1-Click Test Sign-In for BBD Campus
+  const signInWithDemoAccount = async () => {
+    const demoEmail = 'student@bbdu.ac.in';
+    const demoProfile = {
+      id: 'user-demo-bbdu',
+      name: 'BBD Student',
+      email: demoEmail,
+      domain: '@bbdu.ac.in',
+      organization: 'BBD University',
+      hub: 'BBDU Main Gate',
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(demoEmail)}`,
+      gender: 'female',
+      phone: '9876543210',
+      rating: 5.0,
+      verifiedStatus: 'verified_google',
+      joinedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(`hopin_user_${demoProfile.id}`, JSON.stringify(demoProfile));
+    localStorage.setItem('hopin_real_user_v2', JSON.stringify(demoProfile));
+    setUser(demoProfile);
+    setNeedsProfile(false);
+    setPendingGoogleUser(null);
+    return { success: true, user: demoProfile };
+  };
+
+  // Complete Profile Registration
+  const completeGoogleProfile = async ({ fullName, gender = 'female', phone = '', customAvatar = null }) => {
     if (!pendingGoogleUser) {
-      return { success: false, message: 'No pending Google sign-in found. Please sign in with Google first.' };
+      return { success: false, message: 'No pending Google sign-in found. Please sign in first.' };
     }
 
     setLoading(true);
     try {
       const name = (fullName || pendingGoogleUser.displayName || '').trim();
+      const orgInfo = getDomainOrgInfo(pendingGoogleUser.email);
       const profile = {
         id: pendingGoogleUser.uid,
         name: name || pendingGoogleUser.email.split('@')[0],
         email: pendingGoogleUser.email,
         domain: pendingGoogleUser.domain,
+        organization: orgInfo ? orgInfo.org : 'BBD University',
+        hub: 'BBDU Main Gate',
         avatar: customAvatar || pendingGoogleUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(pendingGoogleUser.email)}`,
         gender: gender || 'female',
         phone: phone ? phone.trim() : '',
-        branch: branch ? branch.trim() : '',
         rating: 5.0,
         verifiedStatus: 'verified_google',
         joinedAt: new Date().toISOString()
       };
 
-      // Save to Cloud Firestore
       if (db) {
         try {
           await setDoc(doc(db, 'users', pendingGoogleUser.uid), profile, { merge: true });
@@ -280,7 +336,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Save locally for instant offline/fast loading
       localStorage.setItem(`hopin_user_${pendingGoogleUser.uid}`, JSON.stringify(profile));
       localStorage.setItem('hopin_real_user_v2', JSON.stringify(profile));
 
@@ -296,7 +351,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ── Cancel pending profile creation / switch account ─────────────────────
   const cancelGoogleSignIn = async () => {
     try {
       if (auth) await signOut(auth);
@@ -306,14 +360,12 @@ export const AuthProvider = ({ children }) => {
     setAuthError('');
   };
 
-  // ── Update Profile (Avatar, Photo, Name, Gender, Branch, Phone) ─────────────
   const updateUserProfile = async (updates) => {
     if (!user) return { success: false, message: 'Not logged in.' };
 
     try {
       const updatedProfile = { ...user, ...updates };
 
-      // Save to Cloud Firestore
       if (db) {
         try {
           await setDoc(doc(db, 'users', user.id), updates, { merge: true });
@@ -322,7 +374,6 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Save to localStorage
       localStorage.setItem(`hopin_user_${user.id}`, JSON.stringify(updatedProfile));
       localStorage.setItem('hopin_real_user_v2', JSON.stringify(updatedProfile));
 
@@ -334,7 +385,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     if (isFirebaseConfigured() && auth) {
       try {
@@ -359,7 +409,9 @@ export const AuthProvider = ({ children }) => {
         pendingGoogleUser,
         firebaseReady: isFirebaseConfigured(),
         signInWithGoogle,
+        signInWithDemoAccount,
         completeGoogleProfile,
+        completeUserProfile: completeGoogleProfile,
         updateUserProfile,
         cancelGoogleSignIn,
         logout

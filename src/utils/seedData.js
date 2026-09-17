@@ -1,13 +1,16 @@
-export const BBD_HUBS = [
+export const POPULAR_HUBS = [
+  "HCL IT City Lucknow",
+  "BBDU Main Gate",
   "Charbagh Railway Station",
   "Kamta Chauraha Junction",
   "Hazratganj Metro Station",
-  "BBDU Main Gate",
   "Matiyari Chauraha",
   "Indira Nagar Metro",
   "Polytechnic Chauraha",
   "Lulu Mall Lucknow"
 ];
+
+export const BBD_HUBS = POPULAR_HUBS;
 
 // Clean slate for production: 0 mock rides, 0 mock chats, 0 mock IDs
 export const MOCK_RIDES = [];
