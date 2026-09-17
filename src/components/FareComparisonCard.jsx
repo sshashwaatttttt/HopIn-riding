@@ -102,91 +102,31 @@ export const FareComparisonCard = ({
     return getPlatformDeepLinks(pickup, dropoff);
   }, [pickup, dropoff]);
 
-  const handleLaunchApp = (e, platform) => {
-    e.preventDefault();
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
-    let appUrl = '';
-    let webUrl = '';
-
-    if (platform === 'uber') {
-      appUrl = deepLinks.uberApp;
-      webUrl = deepLinks.uberWeb || deepLinks.uber;
-    } else if (platform === 'ola') {
-      appUrl = deepLinks.olaApp;
-      webUrl = deepLinks.olaWeb || deepLinks.ola;
-    } else if (platform === 'rapido') {
-      appUrl = deepLinks.rapidoApp;
-      webUrl = deepLinks.rapidoWeb || deepLinks.rapido;
-    } else if (platform === 'gmaps') {
-      appUrl = deepLinks.gmaps;
-      webUrl = deepLinks.gmaps;
-    }
-
+  const getPlatformHref = (platform) => {
     if (!isMobile) {
-      // Desktop: Open the web version directly in a new tab
-      window.open(webUrl, '_blank', 'noopener,noreferrer');
-      return;
+      // Desktop: Open official web portal directly in new tab
+      if (platform === 'uber') return deepLinks.uberWeb || deepLinks.uber;
+      if (platform === 'ola') return deepLinks.olaWeb || deepLinks.ola;
+      if (platform === 'rapido') return deepLinks.rapidoWeb || deepLinks.rapido;
+      return deepLinks.gmaps;
     }
 
-    // Google Maps is a Universal Link; direct navigation works natively on mobile
-    if (platform === 'gmaps') {
-      window.location.href = appUrl;
-      return;
+    if (isAndroid) {
+      // Android: Native intent with S.browser_fallback_url (launches app directly, falls back to web if not installed)
+      if (platform === 'uber') return deepLinks.uberIntent || deepLinks.uberApp;
+      if (platform === 'ola') return deepLinks.olaIntent || deepLinks.olaApp;
+      if (platform === 'rapido') return deepLinks.rapidoIntent || deepLinks.rapidoApp;
+      return deepLinks.gmaps;
     }
 
-    // Mobile (Uber, Ola, Rapido):
-    // 1. If the app is installed, directly open it via its URI scheme with destination pre-filled
-    // 2. If the user doesn't have the app installed, redirect to the web of the application (no Google Play Store)
-    let hasSwitchedToApp = false;
-    let fallbackTimer = null;
-
-    const cleanup = () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('pagehide', onPageHide);
-      window.removeEventListener('blur', onBlur);
-      if (fallbackTimer) {
-        clearTimeout(fallbackTimer);
-        fallbackTimer = null;
-      }
-    };
-
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        hasSwitchedToApp = true;
-        cleanup();
-      }
-    };
-
-    const onPageHide = () => {
-      hasSwitchedToApp = true;
-      cleanup();
-    };
-
-    const onBlur = () => {
-      hasSwitchedToApp = true;
-      cleanup();
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('pagehide', onPageHide);
-    window.addEventListener('blur', onBlur);
-
-    const startTime = Date.now();
-
-    // Directly invoke native app scheme
-    window.location.href = appUrl;
-
-    // Fallback only if the app did NOT open and browser remained active
-    fallbackTimer = setTimeout(() => {
-      cleanup();
-      const elapsed = Date.now() - startTime;
-      if (hasSwitchedToApp || document.hidden || elapsed > 2500) {
-        return;
-      }
-      // Direct user to the web version of the application
-      window.location.href = webUrl;
-    }, 1200);
+    // iOS mobile
+    if (platform === 'uber') return deepLinks.uberApp || deepLinks.uberWeb;
+    if (platform === 'ola') return deepLinks.olaApp || deepLinks.olaWeb;
+    if (platform === 'rapido') return deepLinks.rapidoApp || deepLinks.rapidoWeb;
+    return deepLinks.gmaps;
   };
 
   if (!pickup || !dropoff) return null;
@@ -448,58 +388,62 @@ export const FareComparisonCard = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           
           {/* Uber */}
-          <button
-            type="button"
-            onClick={(e) => handleLaunchApp(e, 'uber')}
-            className="min-h-[44px] px-3 py-2 rounded-xl bg-black hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-700 shadow-md active:scale-95 group"
-            title={`Open Uber app directly to ${deepLinks.dropoffName}`}
+          <a
+            href={getPlatformHref('uber')}
+            target={isMobile ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-black hover:bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-700 shadow-md active:scale-95 group text-center no-underline cursor-pointer"
+            title={`Open Uber directly for ${deepLinks.dropoffName}`}
           >
             <div className="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center font-black text-[10px] shrink-0">
               U
             </div>
             <span>Uber</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </button>
+          </a>
 
           {/* Ola */}
-          <button
-            type="button"
-            onClick={(e) => handleLaunchApp(e, 'ola')}
-            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#000000] hover:bg-slate-900 text-[#b5ff00] font-black text-xs flex items-center justify-center gap-2 transition-all border border-[#b5ff00]/40 shadow-md active:scale-95 group"
-            title={`Open Ola app directly to ${deepLinks.dropoffName}`}
+          <a
+            href={getPlatformHref('ola')}
+            target={isMobile ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#000000] hover:bg-slate-900 text-[#b5ff00] font-black text-xs flex items-center justify-center gap-2 transition-all border border-[#b5ff00]/40 shadow-md active:scale-95 group text-center no-underline cursor-pointer"
+            title={`Open Ola directly for ${deepLinks.dropoffName}`}
           >
             <div className="w-5 h-5 rounded-md bg-[#b5ff00] text-black flex items-center justify-center font-black text-[10px] shrink-0">
               O
             </div>
             <span>Ola</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </button>
+          </a>
 
           {/* Rapido */}
-          <button
-            type="button"
-            onClick={(e) => handleLaunchApp(e, 'rapido')}
-            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#F9D100] hover:bg-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all border border-yellow-500 shadow-md active:scale-95 group"
-            title={`Open Rapido app directly to ${deepLinks.dropoffName}`}
+          <a
+            href={getPlatformHref('rapido')}
+            target={isMobile ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-[#F9D100] hover:bg-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all border border-yellow-500 shadow-md active:scale-95 group text-center no-underline cursor-pointer"
+            title={`Open Rapido directly for ${deepLinks.dropoffName}`}
           >
             <div className="w-5 h-5 rounded-md bg-slate-950 text-white flex items-center justify-center font-black text-[10px] shrink-0">
               R
             </div>
             <span>Rapido</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </button>
+          </a>
 
           {/* Google Maps */}
-          <button
-            type="button"
-            onClick={(e) => handleLaunchApp(e, 'gmaps')}
-            className="min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-300 dark:border-slate-700 shadow-sm active:scale-95 group"
-            title={`Open Google Maps ride comparison to ${deepLinks.dropoffName}`}
+          <a
+            href={getPlatformHref('gmaps')}
+            target={isMobile ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-900 dark:text-white font-black text-xs flex items-center justify-center gap-2 transition-all border border-slate-300 dark:border-slate-700 shadow-sm active:scale-95 group text-center no-underline cursor-pointer"
+            title={`Open Google Maps ride comparison for ${deepLinks.dropoffName}`}
           >
             <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
             <span className="truncate">Google Maps</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
-          </button>
+          </a>
 
         </div>
       </div>

@@ -592,7 +592,7 @@ export const getPlatformDeepLinks = (pickup, dropoff) => {
 
   const isMyLocation = cleanPickup.toLowerCase().includes('current') || cleanPickup.toLowerCase().includes('live');
 
-  // 1. Uber: Native App URI Scheme + Universal Web Link (m.uber.com)
+  // 1. Uber: Native App URI Scheme + Universal Web Link (m.uber.com) + Android Intent with browser fallback
   const uberAppUrl = isMyLocation
     ? `uber://?action=setPickup&client_id=hopin_campus&pickup=my_location&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}`
     : `uber://?action=setPickup&client_id=hopin_campus&pickup[latitude]=${pLat}&pickup[longitude]=${pLng}&pickup[nickname]=${encodeURIComponent(pName)}&pickup[formatted_address]=${encodeURIComponent(pName + ", Lucknow")}&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}`;
@@ -601,13 +601,20 @@ export const getPlatformDeepLinks = (pickup, dropoff) => {
     ? `https://m.uber.com/ul/?action=setPickup&client_id=hopin_campus&pickup=my_location&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}`
     : `https://m.uber.com/ul/?action=setPickup&client_id=hopin_campus&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}&pickup[latitude]=${pLat}&pickup[longitude]=${pLng}&pickup[formatted_address]=${encodeURIComponent(pName + ", Lucknow")}`;
 
-  // 2. Ola Cabs: Native App URI (olacabs://) + Web Booking App (book.olacabs.com)
+  const uberAndroidIntent = isMyLocation
+    ? `intent://?action=setPickup&client_id=hopin_campus&pickup=my_location&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}#Intent;scheme=uber;package=com.ubercab;S.browser_fallback_url=${encodeURIComponent(uberWebUrl)};end`
+    : `intent://?action=setPickup&client_id=hopin_campus&pickup[latitude]=${pLat}&pickup[longitude]=${pLng}&pickup[nickname]=${encodeURIComponent(pName)}&pickup[formatted_address]=${encodeURIComponent(pName + ", Lucknow")}&dropoff[latitude]=${dLat}&dropoff[longitude]=${dLng}&dropoff[nickname]=${encodeURIComponent(dName)}&dropoff[formatted_address]=${encodeURIComponent(dName + ", Lucknow")}#Intent;scheme=uber;package=com.ubercab;S.browser_fallback_url=${encodeURIComponent(uberWebUrl)};end`;
+
+  // 2. Ola Cabs: Native App URI (olacabs://) + Web Booking App (book.olacabs.com) + Android Intent with browser fallback
   const olaAppUrl = `olacabs://app/launch?lat=${pLat}&lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}&drop_name=${encodeURIComponent(dName)}&pickup_name=${encodeURIComponent(pName)}`;
   const olaWebUrl = `https://book.olacabs.com/?pickup_name=${encodeURIComponent(pName)}&drop_name=${encodeURIComponent(dName)}&pickup_lat=${pLat}&pickup_lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}`;
+  const olaAndroidIntent = `intent://app/launch?lat=${pLat}&lng=${pLng}&drop_lat=${dLat}&drop_lng=${dLng}&drop_name=${encodeURIComponent(dName)}&pickup_name=${encodeURIComponent(pName)}#Intent;scheme=olacabs;package=com.olacabs.customer;S.browser_fallback_url=${encodeURIComponent(olaWebUrl)};end`;
 
-  // 3. Rapido Bike & Auto: Native App URI (rapido://) + Official Web Portal (www.rapido.bike)
-  const rapidoAppUrl = `rapido://ride?destination=${encodeURIComponent(dName)}&drop_name=${encodeURIComponent(dName)}&drop_lat=${dLat}&drop_lng=${dLng}&pickup_name=${encodeURIComponent(pName)}&pickup_lat=${pLat}&pickup_lng=${pLng}`;
+  // 3. Rapido Bike & Auto: Native App URI (rapido://open) + Official Web Portal + Android Intent with browser fallback
+  const rapidoParams = `destination=${encodeURIComponent(dName)}&drop_name=${encodeURIComponent(dName)}&drop_lat=${dLat}&drop_lng=${dLng}&pickup_name=${encodeURIComponent(pName)}&pickup_lat=${pLat}&pickup_lng=${pLng}`;
+  const rapidoAppUrl = `rapido://open?${rapidoParams}`;
   const rapidoWebUrl = `https://www.rapido.bike/`;
+  const rapidoAndroidIntent = `intent://open?${rapidoParams}#Intent;scheme=rapido;package=com.rapido.passenger;S.browser_fallback_url=${encodeURIComponent(rapidoWebUrl)};end`;
 
   // 4. Google Maps "Ride Services": Pre-fills route and shows live Uber/Ola/Rapido booking cards
   const gmapsWebUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pName + ", Lucknow")}&destination=${encodeURIComponent(dName + ", Lucknow")}&travelmode=rides`;
@@ -616,12 +623,15 @@ export const getPlatformDeepLinks = (pickup, dropoff) => {
     uber: uberWebUrl,
     uberApp: uberAppUrl,
     uberWeb: uberWebUrl,
+    uberIntent: uberAndroidIntent,
     ola: olaWebUrl,
     olaApp: olaAppUrl,
     olaWeb: olaWebUrl,
+    olaIntent: olaAndroidIntent,
     rapido: rapidoWebUrl,
     rapidoApp: rapidoAppUrl,
     rapidoWeb: rapidoWebUrl,
+    rapidoIntent: rapidoAndroidIntent,
     gmaps: gmapsWebUrl,
     pickupName: pName,
     dropoffName: dName
