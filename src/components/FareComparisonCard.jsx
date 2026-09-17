@@ -132,15 +132,25 @@ export const FareComparisonCard = ({
 
   const handleAppClick = (platform) => {
     if (platform === 'rapido' && deepLinks.dropoffName) {
+      const textToCopy = deepLinks.dropoffName;
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(deepLinks.dropoffName);
-          setCopiedApp('rapido');
-          setTimeout(() => setCopiedApp(null), 4000);
-        }
-      } catch (err) {
-        console.warn('Clipboard copy error:', err);
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch {
+        // fallback
       }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).catch(() => {});
+      }
+      setCopiedApp('rapido');
+      setTimeout(() => setCopiedApp(null), 4000);
     }
   };
 
