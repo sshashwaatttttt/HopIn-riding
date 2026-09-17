@@ -116,19 +116,117 @@ export const initStore = () => {
 initStore();
 
 // ── Rides API ───────────────────────────────────────────────────────────────
-export const getRides = () => {
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Automatically purges rides that are older than 1 hour past their departure or completion time.
+ * Deletes them locally and in Cloud Firestore.
+ */
+export const purgeExpiredRides = () => {
   initStore();
   try {
-    const data = JSON.parse(localStorage.getItem(RIDES_KEY) || '[]');
+    const raw = localStorage.getItem(RIDES_KEY);
+    if (!raw) return [];
+    const rides = JSON.parse(raw);
     const now = Date.now();
-    // Return non-cancelled active rides created by real users
-    return data.filter(ride => {
+
+    const activeOrPrevious = [];
+    const expiredIds = [];
+
+    rides.forEach(ride => {
       const depTime = new Date(ride.departureTime).getTime();
-      return (depTime + 60 * 60 * 1000) > now && ride.status !== 'cancelled' && !ride.isDeleted;
+      const completedTime = ride.completedAt ? new Date(ride.completedAt).getTime() : depTime;
+      const expireTime = Math.max(depTime, completedTime) + ONE_HOUR_MS;
+
+      if (now >= expireTime) {
+        expiredIds.push(ride.id);
+      } else {
+        activeOrPrevious.push(ride);
+      }
+    });
+
+    if (expiredIds.length > 0) {
+      localStorage.setItem(RIDES_KEY, JSON.stringify(activeOrPrevious));
+      // Purge from Cloud Firestore
+      if (db) {
+        expiredIds.forEach(id => {
+          deleteDoc(doc(db, 'rides', id)).catch(err => console.warn('Firestore expired ride delete error:', err));
+        });
+      }
+      broadcastUpdate('RIDES_UPDATED', activeOrPrevious);
+    }
+
+    return activeOrPrevious;
+  } catch (e) {
+    console.error('Error purging expired rides:', e);
+    return [];
+  }
+};
+
+/**
+ * Returns currently ACTIVE upcoming rides.
+ * Once a ride reaches its departure time or is marked completed, it automatically leaves Active Rides.
+ */
+export const getRides = () => {
+  try {
+    const allRides = purgeExpiredRides();
+    const now = Date.now();
+
+    return allRides.filter(ride => {
+      const depTime = new Date(ride.departureTime).getTime();
+      const isPastDeparture = depTime <= now;
+      const isCompleted = ride.status === 'completed';
+      const isCancelled = ride.status === 'cancelled';
+      const isDeleted = !!ride.isDeleted;
+
+      // Active: Departure in future, not completed, not cancelled, not deleted
+      return !isPastDeparture && !isCompleted && !isCancelled && !isDeleted;
     });
   } catch (e) {
     return [];
   }
+};
+
+/**
+ * Returns PREVIOUS (completed/departed) rides.
+ * Retains all details (co-riders, fare split, route) for exactly 1 hour, after which they are deleted.
+ */
+export const getPreviousRides = () => {
+  try {
+    const allRides = purgeExpiredRides();
+    const now = Date.now();
+
+    const previous = allRides.filter(ride => {
+      const depTime = new Date(ride.departureTime).getTime();
+      const completedTime = ride.completedAt ? new Date(ride.completedAt).getTime() : depTime;
+      const expireTime = Math.max(depTime, completedTime) + ONE_HOUR_MS;
+
+      const isCompletedOrPast = depTime <= now || ride.status === 'completed';
+      const isWithinOneHour = now < expireTime;
+      const isNotCancelled = ride.status !== 'cancelled' && !ride.isDeleted;
+
+      return isCompletedOrPast && isWithinOneHour && isNotCancelled;
+    });
+
+    // Sort newest completed first
+    previous.sort((a, b) => new Date(b.departureTime).getTime() - new Date(a.departureTime).getTime());
+    return previous;
+  } catch (e) {
+    return [];
+  }
+};
+
+/**
+ * Marks a ride as completed (moved to Previous Rides).
+ */
+export const completeRide = (rideId) => {
+  const ride = getRideById(rideId);
+  if (!ride) return null;
+
+  return updateRide(rideId, {
+    status: 'completed',
+    completedAt: new Date().toISOString()
+  });
 };
 
 export const getRideById = (id) => {

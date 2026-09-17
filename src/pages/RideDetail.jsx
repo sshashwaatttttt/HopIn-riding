@@ -17,7 +17,8 @@ import {
   deleteChatMessage,
   updateRideStatus,
   getBlockedUserIds,
-  unblockUser
+  unblockUser,
+  completeRide
 } from '../utils/store';
 import { SOSModal } from '../components/SOSModal';
 import { RatingModal } from '../components/RatingModal';
@@ -146,6 +147,19 @@ export const RideDetail = () => {
   const justCreated = searchParams.get('created') === 'true';
   const justBooked = searchParams.get('booked') === 'true';
   const isBookedOrCreated = isHost || isMember || isPending || justCreated || justBooked;
+
+  const depTime = ride ? new Date(ride.departureTime).getTime() : 0;
+  const now = Date.now();
+  const isPrevious = ride && (depTime <= now || ride.status === 'completed');
+  const completedTime = ride?.completedAt ? new Date(ride.completedAt).getTime() : depTime;
+  const purgeMinsLeft = Math.max(0, Math.round((Math.max(depTime, completedTime) + 60 * 60 * 1000 - now) / 60000));
+
+  const handleCompleteRide = () => {
+    if (window.confirm("Mark this ride as completed? It will move to the Previous Rides section and will automatically delete after 1 hour.")) {
+      completeRide(ride.id);
+      fetchRideAndChat();
+    }
+  };
 
   // ── Host Actions ──
   const handleRespond = (userId, accept) => {
@@ -285,11 +299,6 @@ export const RideDetail = () => {
       const updated = deleteChatMessage(rideId, msgId);
       if (Array.isArray(updated)) setMessages(updated);
     }
-  };
-
-  const handleCompleteRide = () => {
-    updateRideStatus(rideId, 'completed');
-    setIsRatingOpen(true);
   };
 
   return (
@@ -534,7 +543,17 @@ export const RideDetail = () => {
             /* Route Details Banner */
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                {/* Previous Ride Completed Status Alert */}
+                {isPrevious && (
+                  <div className="mb-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Previous Ride (Completed) • Auto-purges from database in {purgeMinsLeft}m</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                     {ride.direction === 'toCampus' ? t('toCampus') : t('fromCampus')}
                   </span>
@@ -542,6 +561,17 @@ export const RideDetail = () => {
                     <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                       👑 You are the Host
                     </span>
+                  )}
+                  {isHost && !isPrevious && (
+                    <button
+                      type="button"
+                      onClick={handleCompleteRide}
+                      className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                      title="Mark this ride as completed (moves to Previous Rides)"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Mark Completed</span>
+                    </button>
                   )}
                 </div>
 

@@ -13,13 +13,20 @@ export const RideCard = ({ ride, onUpdate }) => {
   const [timeLeft, setTimeLeft] = useState('');
   const [requested, setRequested] = useState(false);
 
+  const depTime = new Date(ride.departureTime).getTime();
+  const now = Date.now();
+  const isPrevious = depTime <= now || ride.status === 'completed';
+  const completedTime = ride.completedAt ? new Date(ride.completedAt).getTime() : depTime;
+  const purgeMinsLeft = Math.max(0, Math.round((Math.max(depTime, completedTime) + 60 * 60 * 1000 - now) / 60000));
+
   useEffect(() => {
     const updateCountdown = () => {
-      const dep = new Date(ride.departureTime).getTime();
-      const now = Date.now();
-      const diffMins = Math.round((dep - now) / 60000);
+      const currentNow = Date.now();
+      const diffMins = Math.round((depTime - currentNow) / 60000);
 
-      if (diffMins <= 0) {
+      if (isPrevious) {
+        setTimeLeft(`Completed • Purges in ${purgeMinsLeft}m`);
+      } else if (diffMins <= 0) {
         setTimeLeft('Leaving now 🛺');
       } else {
         setTimeLeft(`in ${diffMins} min`);
@@ -27,9 +34,9 @@ export const RideCard = ({ ride, onUpdate }) => {
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 30000);
+    const interval = setInterval(updateCountdown, 20000);
     return () => clearInterval(interval);
-  }, [ride.departureTime]);
+  }, [ride.departureTime, isPrevious, purgeMinsLeft]);
 
   const isMember = (ride?.members || []).some(m => m?.id === user?.id);
   const isHost = (ride?.host?.id || ride?.host) === user?.id;
@@ -115,8 +122,16 @@ export const RideCard = ({ ride, onUpdate }) => {
 
           {/* Badges */}
           <div className="flex flex-col items-end gap-1">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-              <Clock className="w-3 h-3 text-amber-500" />
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+              isPrevious
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+            }`}>
+              {isPrevious ? (
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              ) : (
+                <Clock className="w-3 h-3 text-amber-500" />
+              )}
               <span>{timeLeft}</span>
             </span>
           </div>
@@ -126,6 +141,11 @@ export const RideCard = ({ ride, onUpdate }) => {
         <div className="my-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80">
           <div className="flex items-center justify-between text-xs font-black text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
             <span>{ride.direction === 'toCampus' ? t('toCampus') : t('fromCampus')}</span>
+            {isPrevious && (
+              <span className="text-[10px] font-bold text-amber-500">
+                Auto-purges 1h post ride
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -152,7 +172,11 @@ export const RideCard = ({ ride, onUpdate }) => {
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-amber-500" />
             <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
-              {ride.members.length}/{ride.capacity} {t('seatsAvailable')}
+              {isPrevious ? (
+                <span>{ride.members?.length || 1} Co-Riders Completed</span>
+              ) : (
+                <span>{ride.members.length}/{ride.capacity} {t('seatsAvailable')}</span>
+              )}
             </span>
           </div>
 
@@ -172,7 +196,15 @@ export const RideCard = ({ ride, onUpdate }) => {
 
       {/* Action Button */}
       <div>
-        {isMember ? (
+        {isPrevious ? (
+          <Link
+            to={`/ride/${ride.id}`}
+            className="w-full py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-slate-200 dark:border-slate-700 active:scale-98"
+          >
+            <span>View Previous Ride Details 📋</span>
+            <ArrowRight className="w-4 h-4 text-amber-500" />
+          </Link>
+        ) : isMember ? (
           isHost ? (
             <Link
               to={`/ride/${ride.id}`}
