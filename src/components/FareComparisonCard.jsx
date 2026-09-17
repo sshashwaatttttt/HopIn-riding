@@ -105,45 +105,88 @@ export const FareComparisonCard = ({
   const handleLaunchApp = (e, platform) => {
     e.preventDefault();
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    let appUrl = '';
+    let webUrl = '';
+
+    if (platform === 'uber') {
+      appUrl = deepLinks.uberApp;
+      webUrl = deepLinks.uberWeb || deepLinks.uber;
+    } else if (platform === 'ola') {
+      appUrl = deepLinks.olaApp;
+      webUrl = deepLinks.olaWeb || deepLinks.ola;
+    } else if (platform === 'rapido') {
+      appUrl = deepLinks.rapidoApp;
+      webUrl = deepLinks.rapidoWeb || deepLinks.rapido;
+    } else if (platform === 'gmaps') {
+      appUrl = deepLinks.gmaps;
+      webUrl = deepLinks.gmaps;
+    }
 
     if (!isMobile) {
-      // Desktop: Open web link in new tab
-      window.open(deepLinks[platform], '_blank', 'noopener,noreferrer');
+      // Desktop: Open the web version directly in a new tab
+      window.open(webUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    // Mobile: Try direct native app URI scheme with destination pre-filled
-    if (platform === 'uber') {
-      window.location.href = deepLinks.uberApp;
-      setTimeout(() => {
-        window.location.href = deepLinks.uber;
-      }, 1800);
-    } else if (platform === 'ola') {
-      if (isAndroid && deepLinks.olaIntent) {
-        window.location.href = deepLinks.olaIntent;
-      } else {
-        window.location.href = deepLinks.olaApp;
-      }
-      setTimeout(() => {
-        window.location.href = deepLinks.ola;
-      }, 1800);
-    } else if (platform === 'rapido') {
-      if (isAndroid && deepLinks.rapidoIntent) {
-        window.location.href = deepLinks.rapidoIntent;
-      } else {
-        window.location.href = deepLinks.rapidoApp;
-      }
-      setTimeout(() => {
-        window.location.href = deepLinks.gmaps;
-      }, 1800);
-    } else if (platform === 'gmaps') {
-      if (isAndroid && deepLinks.gmapsIntent) {
-        window.location.href = deepLinks.gmapsIntent;
-      } else {
-        window.location.href = deepLinks.gmaps;
-      }
+    // Google Maps is a Universal Link; direct navigation works natively on mobile
+    if (platform === 'gmaps') {
+      window.location.href = appUrl;
+      return;
     }
+
+    // Mobile (Uber, Ola, Rapido):
+    // 1. If the app is installed, directly open it via its URI scheme with destination pre-filled
+    // 2. If the user doesn't have the app installed, redirect to the web of the application (no Google Play Store)
+    let hasSwitchedToApp = false;
+    let fallbackTimer = null;
+
+    const cleanup = () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('blur', onBlur);
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        hasSwitchedToApp = true;
+        cleanup();
+      }
+    };
+
+    const onPageHide = () => {
+      hasSwitchedToApp = true;
+      cleanup();
+    };
+
+    const onBlur = () => {
+      hasSwitchedToApp = true;
+      cleanup();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('blur', onBlur);
+
+    const startTime = Date.now();
+
+    // Directly invoke native app scheme
+    window.location.href = appUrl;
+
+    // Fallback only if the app did NOT open and browser remained active
+    fallbackTimer = setTimeout(() => {
+      cleanup();
+      const elapsed = Date.now() - startTime;
+      if (hasSwitchedToApp || document.hidden || elapsed > 2500) {
+        return;
+      }
+      // Direct user to the web version of the application
+      window.location.href = webUrl;
+    }, 1200);
   };
 
   if (!pickup || !dropoff) return null;
